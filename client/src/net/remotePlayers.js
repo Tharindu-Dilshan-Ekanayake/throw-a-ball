@@ -39,6 +39,9 @@ export function upsertRemotePlayer(sessionId, state) {
       throwT: 0,
       catchT: 0,
       ballAway: false,
+      /** True while their stage throw is in the air (their hand stays empty). */
+      ghostAway: false,
+      ghostNext: false,
       petIds: [],
       /** Follow state per equipped pet, grown as needed and reused. */
       pets: [],

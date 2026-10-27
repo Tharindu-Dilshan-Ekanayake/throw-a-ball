@@ -62,7 +62,8 @@ export const runtime = {
 
   /**
    * Other players' throws to replay as ghost planes:
-   * `{ sid, distance, duration, planeId, x, z, startedAt }`.
+   * `{ sid, distance, duration, planeId, x, y, z, arrivedAt, released, startedAt }`:
+   * `startedAt` is set when the thrower's animation releases the ball, from their hand.
    */
   ghostThrows: [],
 

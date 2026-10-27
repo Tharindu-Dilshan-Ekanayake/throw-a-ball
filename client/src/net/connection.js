@@ -45,7 +45,7 @@ async function findDevServer() {
   for (const port of DEV_PORTS) {
     const url = `${window.location.protocol}//${window.location.hostname}:${port}`
     const health = await healthOf(url)
-    if (health?.ok && (health.game === 'frisbee' || (health.game === undefined && 'players' in health))) return url
+    if (health?.ok && ((health.game === 'throw-a-ball' || health.game === 'frisbee') || (health.game === undefined && 'players' in health))) return url
   }
   return null
 }
@@ -135,7 +135,9 @@ function attachRoom(room, identity, Callbacks) {
         getGame().setLeaderboards(payload)
         break
       case 'ghostThrow':
-        runtime.ghostThrows.push({ ...payload, startedAt: performance.now() })
+        // The ball leaves the thrower's hand when their throw animation lets go of it
+        // (see RemotePlayers), so the flight starts there, not on arrival.
+        runtime.ghostThrows.push({ ...payload, arrivedAt: performance.now(), released: false, startedAt: 0, y: 1.6 })
         break
       case 'kicked':
         leaving = true

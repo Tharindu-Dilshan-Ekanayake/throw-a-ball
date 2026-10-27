@@ -1,13 +1,13 @@
-# Ships +1 Frisbee to Bloxity Legion: the dev branch to the dev channel, main to prod.
+# Ships +1 Throw a Ball to Bloxity Legion: the dev branch to the dev channel, main to prod.
 #
 #   server   -> Docker image in this repo's GitHub Container Registry, then Legion rolls
-#               it out (https://1-frisbee.host.bloxity.io / .dev.host.bloxity.io)
-#   frontend -> the built client, served at https://1-frisbee.play.bloxity.io
-#               (prod) and https://1-frisbee.dev.play.bloxity.io (dev)
+#               it out (https://1-throw-a-ball.host.bloxity.io / .dev.host.bloxity.io)
+#   frontend -> the built client, served at https://1-throw-a-ball.play.bloxity.io
+#               (prod) and https://1-throw-a-ball.dev.play.bloxity.io (dev)
 #
 # Needs one repository secret: LEGION_DEPLOY_TOKEN (Settings -> Secrets and variables
 # -> Actions). After the first run, make the ghcr.io package public so Legion can pull
-# it (repo -> Packages -> 1-frisbee-server -> Package settings -> Change visibility).
+# it (repo -> Packages -> 1-throw-a-ball-server -> Package settings -> Change visibility).
 
 name: Deploy to Bloxity Legion
 
@@ -17,7 +17,7 @@ on:
   workflow_dispatch:
 
 env:
-  GAME_ID: 1-frisbee
+  GAME_ID: 1-throw-a-ball
   # Players per room (the Colyseus room's maxClients); a full pod makes Legion start another.
   SEAT_CAP: 8
 
