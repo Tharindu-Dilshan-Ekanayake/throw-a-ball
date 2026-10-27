@@ -1,8 +1,8 @@
 import { AdditiveBlending, Color, InstancedMesh, PlaneGeometry, ShaderMaterial } from 'three'
 
 /**
- * Soft glowing halos for frisbees: camera-facing quads with a radial falloff, blended
- * additively. Procedural (no texture) and always instanced - a single frisbee's halo is
+ * Soft glowing halos for softballs: camera-facing quads with a radial falloff, blended
+ * additively. Procedural (no texture) and always instanced - a single softball's halo is
  * an instance of one - so every halo shares one shader program.
  *
  * Colour comes from instanceColor; size is the instance (and object) scale.

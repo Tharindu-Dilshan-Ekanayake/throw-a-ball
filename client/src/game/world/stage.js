@@ -1,8 +1,10 @@
-import { CylinderGeometry, TorusGeometry } from 'three'
+import { CylinderGeometry, SphereGeometry, TorusGeometry } from 'three'
 
+import { mulberry32 } from '@shared/rng'
 import { STAGE, STAGE_STEP_DEPTH, STAGE_STEPS, THROW_AREA } from '@shared/world'
 
 import { STYLE } from '../materials'
+import { ROCK, rockTower, WATER_COLOR as WATER, waterSheet } from './rockArch'
 
 const WHITE = '#f4f7fb'
 const BLUE = '#2f7fe6'
@@ -19,12 +21,14 @@ const DISC = new CylinderGeometry(1, 1, 1, 32)
 export const ARCH_SIGN = { width: 9.6, height: 2.7, y: STAGE.height + 9.6, faceZ: STAGE.minZ + 1 + 0.95 }
 const LAMP = new CylinderGeometry(1, 0.75, 1, 12)
 const RIM = new TorusGeometry(1, 0.11, 8, 40)
+const BALL = new SphereGeometry(1, 28, 18)
+const SEAM = new TorusGeometry(1, 0.045, 8, 48)
 
 /**
  * The throw stage: a raised white-and-blue platform at the north end of the lobby with
  * steps up its south side, the painted throw pad, light strips, spotlights, and a launch
- * arch over its front edge that the frisbees fly out through, crowned by a giant
- * frisbee. A railing along the front marks the end of the lobby.
+ * arch over its front edge that the softballs fly out through, crowned by a giant
+ * softball. A railing along the front marks the end of the lobby.
  *
  * Boxes go into the world's block set and the round parts into its props, so the whole
  * stage still rides in those two draw calls. `detail` (off on LOW) adds the small
@@ -93,27 +97,27 @@ export function buildStage(blocks, props, { detail = true } = {}) {
     blocks.addOn(x, height, maxZ + stairs / 2 - 0.1, 0.5, 0.08, stairs - 0.6, SKY, STYLE.GLOW)
   }
 
-  // Front railing: posts and a glowing rail. The frisbee flies over it.
+  // Front railing: posts and a glowing rail. The softball flies over it.
   const railZ = minZ + 0.25
   for (let x = minX + 0.5; x <= maxX - 0.4; x += 2) blocks.addOn(x, height, railZ, 0.25, 1, 0.25, WHITE)
   blocks.addOn(0, height + 0.9, railZ, width - 0.4, 0.22, 0.3, SKY, STYLE.GLOW)
   blocks.addOn(0, height + 0.4, railZ, width - 0.4, 0.12, 0.2, WHITE)
 
-  // Launch arch over the front: striped pillars on the corners, a beam across the top
-  // carrying the THROW! sign and a rainbow crest, and a glowing orb on each pillar.
+  // Launch arch over the front: two towers of stacked rock on the corners, each with a
+  // waterfall pouring down its outer side into a pool, a beam across the top carrying the
+  // THROW! sign and a rainbow crest, and a glowing orb on each tower.
   const archTop = height + 9
   const archZ = minZ + 1
+  const rand = mulberry32(2024)
   for (const side of [-1, 1]) {
     const x = side * (width / 2 - 1)
-    blocks.addOn(x, height, archZ, 1.8, 0.6, 1.8, NAVY)
-    blocks.addOn(x, height + 0.6, archZ, 1.4, archTop - height - 0.6, 1.4, BLUE, STYLE.STRIPES)
+    // The beam rests on a flat capstone; the rock rises to meet it.
+    rockTower(blocks, x, height, archZ, archTop - 0.4, 2.6, 2.6, rand, false)
+    blocks.addOn(x, archTop - 0.4, archZ, 2.2, 0.6, 2.2, ROCK, STYLE.TERRAIN)
     blocks.addOn(x, archTop + 1.2, archZ, 1.9, 1.9, 1.9, GOLD, STYLE.GLOW)
-    // Marquee bulbs up the front of each pillar.
-    if (detail) {
-      for (let y = height + 1.6; y < archTop - 0.6; y += 1.1) {
-        blocks.add(x, y, archZ + 0.78, 0.3, 0.3, 0.16, Math.round(y) % 2 ? '#ffffff' : GOLD, STYLE.GLOW)
-      }
-    }
+    // Water spilling from a spout near the top down the outside, to a pool on the ground.
+    blocks.addOn(x + side * 1.6, archTop - 3.2, archZ, 1.4, 0.4, 2.4, WATER, STYLE.WATER)
+    waterSheet(blocks, x + side * 2.3, archTop - 2.8, archZ, 2.2)
   }
   blocks.addOn(0, archTop - 0.2, archZ, width - 1, 1.4, 1.2, BLUE, STYLE.STRIPES)
   blocks.addOn(0, archTop - 0.45, archZ, width - 2.6, 0.25, 1.3, SKY, STYLE.GLOW)
@@ -131,14 +135,26 @@ export function buildStage(blocks, props, { detail = true } = {}) {
     }
   }
 
-  // The crown: a giant frisbee standing on the beam, leaning back to face the lobby.
-  const discY = archTop + 4.6
-  const lean = [Math.PI / 2 - 0.28, 0, 0]
-  blocks.addOn(0, archTop + 1.5, archZ, 0.6, discY - archTop - 3.6, 0.6, NAVY)
-  props.add(DISC, { position: [0, discY, archZ], rotation: lean, scale: [2.7, 0.5, 2.7], color: BLUE })
-  props.add(DISC, { position: [0, discY, archZ], rotation: lean, scale: [1.75, 0.62, 1.75], color: '#ffffff' })
-  props.add(DISC, { position: [0, discY, archZ], rotation: lean, scale: [0.75, 0.74, 0.75], color: GOLD, style: STYLE.GLOW })
-  props.add(RIM, { position: [0, discY, archZ], rotation: [lean[0] - Math.PI / 2, 0, 0], scale: [2.75, 2.75, 2.6], color: GOLD, style: STYLE.GLOW })
+  // The crown: a giant softball on the beam, its two red seams curving over the face that
+  // looks out at the lobby, with a gold halo ring behind it.
+  const ballY = archTop + 4.6
+  const ballR = 2.7
+  blocks.addOn(0, archTop + 1.5, archZ, 0.6, ballY - archTop - 3.6, 0.6, NAVY)
+  props.add(BALL, { position: [0, ballY, archZ], scale: ballR, color: '#e6f53c' })
+  // Each seam is a small circle on the ball, tilted towards the viewer: the plane's
+  // normal leans 0.58 rad off the lobby axis, the centre half a radius along it.
+  const lean = 0.58
+  const offset = ballR * 0.5
+  const seamR = Math.sqrt(ballR * ballR - offset * offset)
+  for (const side of [-1, 1]) {
+    props.add(SEAM, {
+      position: [side * Math.sin(lean) * offset, ballY, archZ + Math.cos(lean) * offset],
+      rotation: [0, side * lean, 0],
+      scale: seamR + 0.04,
+      color: '#e0312a',
+    })
+  }
+  props.add(RIM, { position: [0, ballY, archZ - 0.9], rotation: [0, 0, 0], scale: [ballR + 0.9, ballR + 0.9, 1], color: GOLD, style: STYLE.GLOW })
 
   // Light poles on the back corners, each topped with a spotlight aimed at the arch.
   const poleTop = height + 6.5

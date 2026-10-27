@@ -12,13 +12,13 @@
 export const TRAIN_INTERVAL = 0.6
 /**
  * Click throws: anywhere in the lobby outside the throw area, each click throws the
- * frisbee from your hand for a x1 training throw. This is the fastest they count, in
+ * softball from your hand for a x1 training throw. This is the fastest they count, in
  * seconds (about six a second).
  */
 export const CLICK_INTERVAL = 0.16
 /** Training throws per level. */
 export const LEVEL_STEPS = 10
-/** Each level adds this fraction to the frisbee's base power: gain x (1 + level x k). */
+/** Each level adds this fraction to the softball's base power: gain x (1 + level x k). */
 export const LEVEL_GAIN = 0.15
 
 /**
@@ -49,36 +49,36 @@ export function levelCap(rebirths) {
 /** Power multiplier from rebirths: R0 = x1, R1 = x2, R2 = x3 ... */
 export const rebirthMultiplier = (rebirths) => rebirths + 1
 
-// --- Frisbees ---------------------------------------------------------------------
+// --- Softballs ---------------------------------------------------------------------
 
 /**
- * The frisbees you throw. `power` is base power per training throw; `cost` is in Wins.
+ * The softballs you throw. `power` is base power per training throw; `cost` is in Wins.
  *
  * The table (and the profile's `equippedPlane` / `ownedPlanes`) keep their original
- * plane names and ids, so saves from before the switch to frisbees still load.
+ * plane names and ids, so saves from before the switch to softballs still load.
  */
 export const PLANES = [
-  { id: 'paper', name: 'Classic Frisbee', power: 1, cost: 0 },
-  { id: 'sky', name: 'Sky Disc', power: 2, cost: 3 },
-  { id: 'newspaper', name: 'Sunny Disc', power: 5, cost: 28 },
-  { id: 'cardboard', name: 'Pizza Disc', power: 11, cost: 110 },
-  { id: 'racer', name: 'Racer Disc', power: 21, cost: 280 },
-  { id: 'ocean', name: 'Wave Disc', power: 46, cost: 840 },
-  { id: 'jungle', name: 'Jungle Disc', power: 98, cost: 2100 },
-  { id: 'royal', name: 'Royal Disc', power: 210, cost: 5600 },
-  { id: 'crystal', name: 'Crystal Disc', power: 490, cost: 14000 },
-  { id: 'golden', name: 'Golden Disc', power: 1100, cost: 35000 },
+  { id: 'paper', name: 'Classic Softball', power: 1, cost: 0 },
+  { id: 'sky', name: 'Sky Ball', power: 2, cost: 3 },
+  { id: 'newspaper', name: 'Sunny Ball', power: 5, cost: 28 },
+  { id: 'cardboard', name: 'Pizza Ball', power: 11, cost: 110 },
+  { id: 'racer', name: 'Racer Ball', power: 21, cost: 280 },
+  { id: 'ocean', name: 'Wave Ball', power: 46, cost: 840 },
+  { id: 'jungle', name: 'Jungle Ball', power: 98, cost: 2100 },
+  { id: 'royal', name: 'Royal Ball', power: 210, cost: 5600 },
+  { id: 'crystal', name: 'Crystal Ball', power: 490, cost: 14000 },
+  { id: 'golden', name: 'Golden Ball', power: 1100, cost: 35000 },
   // The second stage: same curve, each about 2.5x the Wins for 2.2x the power.
-  { id: 'candy', name: 'Candy Disc', power: 2400, cost: 90000 },
-  { id: 'ice', name: 'Ice Disc', power: 5300, cost: 225000 },
-  { id: 'lava', name: 'Lava Disc', power: 11500, cost: 560000 },
-  { id: 'thunder', name: 'Thunder Disc', power: 25000, cost: 1400000 },
-  { id: 'neon', name: 'Neon Disc', power: 55000, cost: 3500000 },
-  { id: 'galaxy', name: 'Galaxy Disc', power: 120000, cost: 8800000 },
-  { id: 'dragon', name: 'Dragon Disc', power: 260000, cost: 22000000 },
-  { id: 'rainbow', name: 'Rainbow Disc', power: 570000, cost: 55000000 },
-  { id: 'diamond', name: 'Diamond Disc', power: 1250000, cost: 140000000 },
-  { id: 'cosmic', name: 'Cosmic Disc', power: 2750000, cost: 350000000 },
+  { id: 'candy', name: 'Candy Ball', power: 2400, cost: 90000 },
+  { id: 'ice', name: 'Ice Ball', power: 5300, cost: 225000 },
+  { id: 'lava', name: 'Lava Ball', power: 11500, cost: 560000 },
+  { id: 'thunder', name: 'Thunder Ball', power: 25000, cost: 1400000 },
+  { id: 'neon', name: 'Neon Ball', power: 55000, cost: 3500000 },
+  { id: 'galaxy', name: 'Galaxy Ball', power: 120000, cost: 8800000 },
+  { id: 'dragon', name: 'Dragon Scale Ball', power: 260000, cost: 22000000 },
+  { id: 'rainbow', name: 'Rainbow Ball', power: 570000, cost: 55000000 },
+  { id: 'diamond', name: 'Diamond Ball', power: 1250000, cost: 140000000 },
+  { id: 'cosmic', name: 'Cosmic Ball', power: 2750000, cost: 350000000 },
 ]
 
 // --- Throwing ---------------------------------------------------------------------
@@ -90,8 +90,9 @@ export const DISTANCE_K = 5.27
 /** Themed track segments. `start` in metres; later zones pay more Wins per metre. */
 export const ZONES = [
   { id: 'neighbourhood', name: 'Neighbourhood', start: 0, winsPerMeter: 0.3 },
-  { id: 'city', name: 'City', start: 150, winsPerMeter: 0.5 },
-  { id: 'forest', name: 'Forest', start: 450, winsPerMeter: 0.8 },
+  // Forest before City, so the track runs out of the suburbs into the woods first.
+  { id: 'forest', name: 'Forest', start: 150, winsPerMeter: 0.5 },
+  { id: 'city', name: 'City', start: 450, winsPerMeter: 0.8 },
   { id: 'desert', name: 'Desert', start: 900, winsPerMeter: 1.2 },
   { id: 'snow', name: 'Snow', start: 1500, winsPerMeter: 1.8 },
   { id: 'volcano', name: 'Volcano', start: 2400, winsPerMeter: 2.6 },
@@ -145,6 +146,12 @@ export const PETS = {
   dragon: { name: 'Dragon', rarity: 'epic', mult: 6 },
   crab: { name: 'Lucky Crab', rarity: 'uncommon', mult: 1.5 },
   sphinx: { name: 'Sphinx', rarity: 'secret', mult: 150 },
+  // The Halloween set, from the Spooky Egg by World 2's portal.
+  pumpkin: { name: 'Pumpkin', rarity: 'rare', mult: 40 },
+  mummy: { name: 'Mummy', rarity: 'rare', mult: 48 },
+  ghost: { name: 'Ghost', rarity: 'epic', mult: 62 },
+  skeleton: { name: 'Skeleton', rarity: 'epic', mult: 78 },
+  witchcat: { name: 'Witch Cat', rarity: 'legendary', mult: 115 },
 }
 
 /**
@@ -157,6 +164,7 @@ export const EGGS = {
   sunset: { name: 'Sunset', cost: { wins: 4000 }, pets: [['flamingo', 45], ['turtle', 30], ['owl', 20], ['phoenix', 5]] },
   unicorn: { name: 'Unicorn', cost: { wins: 25000 }, pets: [['pony', 50], ['unicorn', 35], ['pegasus', 15]] },
   demon: { name: 'Demon', cost: { wins: 60000 }, pets: [['imp', 50], ['bat', 30], ['demon', 15], ['hellhound', 5]] },
+  spooky: { name: 'Spooky', cost: { wins: 150000 }, pets: [['pumpkin', 38], ['mummy', 30], ['skeleton', 17], ['ghost', 12], ['witchcat', 3]] },
 }
 
 export const MAX_EQUIPPED_PETS = 3
@@ -214,7 +222,7 @@ export const WORLD2_POWER = 2.5e6
 // --- Premium ----------------------------------------------------------------------
 
 /**
- * The shop. Wins are the game's only currency: everything here, like frisbees and
+ * The shop. Wins are the game's only currency: everything here, like softballs and
  * eggs, is bought with them. `pass` = permanent unlock; `consumable` = grants every
  * time. Power packs are priced at a few throws' Wins for a player at that power, so
  * they speed you up without replacing the training loop.
@@ -233,13 +241,15 @@ export const SPHINX_STOCK_DEFAULT = 954
 
 // --- Tutorial & badges ------------------------------------------------------------
 
-/** Each step completes when its event fires. */
+/**
+ * Each step completes when its event fires. The guide ends with the first softball
+ * bought with Wins (the Sky Ball, 3 Wins, on the first shop pad after the starter).
+ */
 export const TUTORIAL = [
   { text: 'Throw one time', event: 'throw', target: 'throw' },
   { text: 'Go to the FREE Training Area', event: 'train', target: 'lane0' },
   { text: 'Get your first Rebirth', event: 'rebirth', target: 'rebirth' },
-  { text: 'Buy a better frisbee in the Shop', event: 'buyPlane', target: 'hangar' },
-  { text: 'Hatch a pet from an egg', event: 'hatch', target: 'eggs' },
+  { text: 'Buy the Sky Ball for 3 Wins in the Shop', event: 'buyPlane', target: 'hangar' },
 ]
 
 export const BADGES = {

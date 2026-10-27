@@ -28,8 +28,8 @@ function usePrompt() {
 
   if (atPortal) {
     return power >= WORLD2_POWER
-      ? { title: 'World 2', action: 'Coming soon!', run: null }
-      : { title: 'World 2', action: `Needs ${formatNumber(WORLD2_POWER)} Power (you have ${formatNumber(power)})`, run: null }
+      ? { title: 'World 2 - Halloween', action: 'Coming soon!', run: null }
+      : { title: 'World 2 - Halloween', action: `Needs ${formatNumber(WORLD2_POWER)} Power (you have ${formatNumber(power)})`, run: null }
   }
 
   if (atSphinx) {

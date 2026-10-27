@@ -28,6 +28,7 @@ const EGG_LOOKS = {
   sunset: { pattern: 2, glow: '#ffb347' },
   unicorn: { pattern: 3, glow: '#ffb0f0' },
   demon: { pattern: 4, glow: '#ff3b1e' },
+  spooky: { pattern: 5, glow: '#ff8a1e', spot: '#ff8a1e', dark: '#7dff3a' },
 }
 
 const vertexHead = /* glsl */ `
@@ -57,7 +58,7 @@ const fragmentHead = /* glsl */ `
   }
 `
 
-/** The five shell patterns, drawn on the unit sphere by latitude and longitude. */
+/** The six shell patterns, drawn on the unit sphere by latitude and longitude. */
 const PATTERN_GLSL = /* glsl */ `
   {
     vec3 p = normalize(vEggLocal);
@@ -102,12 +103,21 @@ const PATTERN_GLSL = /* glsl */ `
       float twinkle = step(0.92, eHash(star)) * (0.5 + 0.5 * sin(uETime * 4.0 + eHash(star + 3.1) * 6.0));
       col += vec3(twinkle * 0.9);
       glow = twinkle * 0.6;
-    } else {
+    } else if (d < 5.0) {
       // Demon: dark shell split by glowing lava cracks that pulse.
       float n = sin(lon * 5.0 + sin(p.y * 7.0) * 1.5) * sin(p.y * 9.0 + sin(lon * 3.0) * 2.0);
       float crack = 1.0 - smoothstep(0.0, 0.13, abs(n));
       col = mix(base, vEggSpot, crack);
       glow = crack * (0.65 + 0.35 * sin(uETime * 3.0));
+    } else {
+      // Spooky: a purple shell ribbed like a pumpkin, glowing orange along the ribs,
+      // with green slime dripping from the top.
+      float f = fract(lon / ETAU * 8.0);
+      float rib = 1.0 - smoothstep(0.0, 0.07, min(f, 1.0 - f));
+      float drip = 0.52 + 0.14 * sin(lon * 7.0) + 0.1 * sin(lon * 13.0 + 1.0);
+      float slime = smoothstep(drip - 0.03, drip + 0.03, p.y);
+      col = mix(mix(base, vEggSpot, rib), vEggDark, slime);
+      glow = rib * 0.5 * (0.7 + 0.3 * sin(uETime * 2.0 + lon)) + slime * 0.25;
     }
     // Lit a touch from above.
     col *= mix(0.86, 1.06, p.y * 0.5 + 0.5);
@@ -141,7 +151,7 @@ function eggMaterial() {
     // The lobby's clock, which already ticks every frame for the halos.
     shader.uniforms.uETime = glowTime
   }
-  material.customProgramCacheKey = () => 'egg-v1'
+  material.customProgramCacheKey = () => 'egg-v2'
   return material
 }
 
@@ -153,7 +163,7 @@ const _axis = new Vector3(0, 1, 0)
 
 /**
  * The eggs on their stands: patterned glossy shells that slowly turn and bob, each
- * with a soft halo in its own colour. All five are one draw call (with one shader of
+ * with a soft halo in its own colour. All six are one draw call (with one shader of
  * their own), the halos another.
  */
 export function EggDisplays() {
@@ -206,7 +216,7 @@ export function EggDisplays() {
     const glows = glowRef.current
     if (!mesh || !glows) return
     const t = state.clock.elapsedTime
-    const glowSize = getQuality().frisbeeGlow
+    const glowSize = getQuality().ballGlow
     EGG_STANDS.forEach((stand, i) => {
       const scale = stand.big ? 1.5 : 1.05
       // The Demon Egg is crowned with horns and wings, so it turns on the spot.

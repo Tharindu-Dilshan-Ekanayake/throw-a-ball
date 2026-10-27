@@ -65,7 +65,7 @@ const SKY = '#7fe2ff'
 const GOLD = '#ffd21f'
 
 /**
- * The frisbee shop: two open display stages (the stands on them are PlaneShop's) and
+ * The softball shop: two open display stages (the stands on them are PlaneShop's) and
  * the big board behind, built like the throw stage - white decks on a blue band with
  * light strips round the edges. `detail` (off on LOW) adds the board's bulbs.
  *

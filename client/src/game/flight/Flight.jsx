@@ -29,16 +29,17 @@ import { getQuality, useQuality } from '../../store/quality'
 import { iconUrl } from '../../ui/icons'
 import { BlockSet, createToyInstances, disposeBlocks, PropBuilder } from '../blocks'
 import { spawnPopup } from '../fx/popups'
-import { createFrisbeeModel, frisbeeOrientation } from '../frisbee'
+import { createGlowInstances, disposeGlow } from '../glow'
+import { createSoftballModel, softballGlow, softballOrientation } from '../softball'
 import { LabelBatch } from '../labels/LabelBatch'
 import { sharedMaterials, STYLE } from '../materials'
 import { RELEASE_DELAY } from '../playerPose'
 import { runtime } from '../runtime'
 import { FOG, SKY } from '../sceneStyle'
 import { skyUniforms } from '../skyState'
-import { flight } from './flightControl'
+import { flight, landFlight } from './flightControl'
 import { writeDistance } from './hudLink'
-import { buildChunk, CHUNK, GATES, ZONE_THEMES, zAt } from './track'
+import { buildChunk, CHUNK, GATE_LABEL, GATES, ZONE_THEMES, zAt } from './track'
 
 /**
  * Above this speed (m/s) the flight goes to "warp": no new scenery is built, a plain
@@ -86,6 +87,10 @@ const _s = new Vector3()
 const _v = new Vector3()
 const _look = new Vector3()
 const _prevPlane = new Vector3()
+const _trailS = new Vector3()
+const _qIdentity = new Quaternion()
+/** Soft glow points kept behind the flying ball for its trail. */
+const TRAIL = 18
 /** Stable vector for runtime.flightFocus (the scratch ones are reused mid-frame). */
 const planeFocus = new Vector3()
 const _skyTop = new Color()
@@ -161,6 +166,60 @@ function updateWarpFloor(floor, meter) {
   floor.frustumCulled = false
 }
 
+/** How many of the touchdown bounces have finished `tb` seconds after landing. */
+function bouncesDone(tb) {
+  let start = 0
+  for (let i = 0; i < BOUNCES.length; i += 1) {
+    start += BOUNCES[i][0]
+    if (tb < start) return i
+  }
+  return BOUNCES.length
+}
+
+/** Where the ball's centre sits when it rests on the road (it is drawn at 2x scale). */
+const BALL_REST_Y = 0.7
+/** Touchdown bounces: [seconds, peak height]. Each is a parabola, lower than the last. */
+const BOUNCES = [
+  [0.7, 1.4],
+  [0.46, 0.6],
+  [0.3, 0.22],
+  [0.2, 0.08],
+]
+/** Forward speed (m/s) at touchdown, the share kept by each bounce, and the roll's drag. */
+const BOUNCE_SPEED = 13
+const BOUNCE_SPEED_KEEP = 0.62
+const ROLL_DRAG = 3
+
+/** How far the ball has run on past its landing point, `tb` seconds after touchdown. */
+function bounceTravel(tb) {
+  let start = 0
+  let speed = BOUNCE_SPEED
+  let distance = 0
+  for (let i = 0; i < BOUNCES.length; i += 1) {
+    const duration = BOUNCES[i][0]
+    if (tb < start + duration) return distance + speed * (tb - start)
+    distance += speed * duration
+    start += duration
+    speed *= BOUNCE_SPEED_KEEP
+  }
+  // Once it stops hopping it rolls to a halt.
+  return distance + (speed * (1 - Math.exp(-ROLL_DRAG * (tb - start)))) / ROLL_DRAG
+}
+
+/** Height above the road of the landed ball, `tb` seconds after touchdown. */
+function bounceHeight(tb) {
+  let start = 0
+  for (let i = 0; i < BOUNCES.length; i += 1) {
+    const [duration, peak] = BOUNCES[i]
+    if (tb < start + duration) {
+      const u = (tb - start) / duration
+      return peak * 4 * u * (1 - u)
+    }
+    start += duration
+  }
+  return 0
+}
+
 /** Where the plane is at normalised time `t` (0-1) of the current flight. */
 function planePosition(t, start, out) {
   const end = zAt(flight.distance)
@@ -170,13 +229,13 @@ function planePosition(t, start, out) {
   const rise = 1 - Math.exp(-travelled / 9)
   const landing = smoothstep(0.86, 1, t)
   const cruise = start.y + (CRUISE_HEIGHT - start.y) * rise + Math.sin(t * 9) * 0.3 * (1 - landing)
-  const y = cruise + (0.35 - cruise) * landing
+  const y = cruise + (BALL_REST_Y - cruise) * landing
   const x = start.x * (1 - smoothstep(0, 0.25, t)) + Math.sin(travelled * 0.015) * 1.4 * (1 - landing)
   return out.set(x, y, z)
 }
 
 /**
- * Lazily loaded: the track, the flying frisbee and its chase camera. While nobody is
+ * Lazily loaded: the track, the flying softball and its chase camera. While nobody is
  * flying it still streams the first stretch of track, which is the street you see
  * leading out of the lobby.
  */
@@ -194,6 +253,9 @@ export default function Flight() {
   const flightStart = useRef(new Vector3())
   const startedFor = useRef(0)
   /** Trophies popped so far this flight: index of the next, Wins not yet shown. */
+  const bounceHeard = useRef(0)
+  const trailRef = useRef(null)
+  const trailState = useRef({ pos: Array.from({ length: TRAIL }, () => new Vector3()), head: 0, filled: 0 })
   const trophyTally = useRef({ next: 0, pending: 0, shownAt: 0 })
   const wasActive = useRef(false)
   const gatesRef = useRef(null)
@@ -203,7 +265,7 @@ export default function Flight() {
   const assets = useMemo(() => {
     const trophies = createToyInstances(createTrophyGeometry(), sharedMaterials().toy, MAX_TROPHIES)
 
-    const planeModel = createFrisbeeModel({ glowSize: 1.9 })
+    const planeModel = createSoftballModel({ glowSize: 1.9 })
     planeModel.scale.setScalar(2)
     planeModel.visible = false
 
@@ -239,7 +301,10 @@ export default function Flight() {
     warpFloor.visible = false
     warpFloor.matrixAutoUpdate = false
 
-    return { trophies, planeModel, streakMesh, streakMaterial, stars, warpFloor }
+    // A comet trail of glow behind the ball (off on LOW, with the other particles).
+    const trail = createGlowInstances(TRAIL, 0.55)
+
+    return { trophies, planeModel, trail, streakMesh, streakMaterial, stars, warpFloor }
   }, [])
 
   // This module loads after the lobby is on screen; compile its shaders in the
@@ -265,7 +330,7 @@ export default function Flight() {
   useEffect(() => {
     const batch = new LabelBatch({ pageSize: Math.min(512, getQuality().maxTexture) })
     for (const g of GATES) {
-      batch.add(`gate-${g.zone.id}`, [0, 16.4, zAt(g.meter)], { lines: [{ text: g.zone.name, size: 64, fill: '#ffffff' }], pxPerUnit: 26 }, { fade: 400 })
+      batch.add(`gate-${g.zone.id}`, [0, GATE_LABEL.y, zAt(g.meter) + GATE_LABEL.z], { lines: [{ text: g.zone.name, size: 72, gradient: ['#fffaa8', '#ffd52a', '#ff9c00'] }], pxPerUnit: 26 }, { fade: 500 })
     }
     let cancelled = false
     batch.build().then((meshes) => {
@@ -326,6 +391,7 @@ export default function Flight() {
       assets.trophies.geometry.dispose()
       assets.trophies.dispose()
       assets.planeModel.dispose()
+      disposeGlow(assets.trail)
       assets.streakMesh.geometry.dispose()
       assets.streakMaterial.dispose()
       assets.streakMesh.dispose()
@@ -351,15 +417,38 @@ export default function Flight() {
     if (flight.active) {
       if (startedFor.current !== flight.startedAt) {
         startedFor.current = flight.startedAt
-        flightStart.current.copy(runtime.player.frisbeeAt)
+        flightStart.current.copy(runtime.player.ballAt)
         trophyTally.current = { next: 0, pending: 0, shownAt: 0 }
+        bounceHeard.current = 0
         _prevPlane.copy(flightStart.current)
       }
-      // Rides in the hand through the wind-up and leaves it at the release.
+      // Rides in the hand through the wind-up and leaves it at the release. The release
+      // is whenever the throw animation lets go of it (the player's own throw clock),
+      // so the ball and the arm can never drift apart, however the frame rate dips.
       const elapsed = (now - flight.startedAt) / 1000
-      if (elapsed < RELEASE_DELAY) flightStart.current.copy(runtime.player.frisbeeAt)
-      const t = Math.min(1, Math.max(0, elapsed - RELEASE_DELAY) / flight.duration)
+      if (flight.releasedAt === 0 && elapsed > 0.05 && (runtime.player.ballAway || elapsed > RELEASE_DELAY + 0.4)) {
+        flight.releasedAt = now
+      }
+      const released = flight.releasedAt > 0
+      const sinceRelease = released ? (now - flight.releasedAt) / 1000 : 0
+      // The camera swings from the player onto the ball as it leaves the hand.
+      if (released && runtime.camera.mode === 'follow') runtime.camera.mode = 'flight'
+      if (!released) flightStart.current.copy(runtime.player.ballAt)
+      const t = released ? Math.min(1, sinceRelease / flight.duration) : 0
       planePosition(t, flightStart.current, _p)
+      if (t >= 1) {
+        // Touched down: it bounces on down the track, each hop lower, and rolls to a stop.
+        const tb = sinceRelease - flight.duration
+        landFlight()
+        // Each time the ball comes back down it knocks on the road, softer every time.
+        const done = bouncesDone(tb)
+        while (bounceHeard.current < done) {
+          sfx.bounce((BOUNCES[bounceHeard.current][1] / BOUNCES[0][1]) * 0.9)
+          bounceHeard.current += 1
+        }
+        _p.y += bounceHeight(tb)
+        _p.z -= bounceTravel(tb)
+      }
       flight.meter = Math.max(0, Math.min(flight.distance, THROW_LINE_Z - _p.z))
       focus = flight.meter
       speed = _prevPlane.distanceTo(_p) / Math.max(delta, 1e-3)
@@ -368,18 +457,41 @@ export default function Flight() {
       _prevPlane.copy(_p)
       if (plane) {
         // The one in the hand is shown until the release.
-        plane.visible = elapsed >= RELEASE_DELAY
+        plane.visible = released
         // The rush of air while it flies, swelling with its speed, gone as it lands.
-        if (elapsed >= RELEASE_DELAY && t < 1) {
+        if (released && t < 1) {
           sfx.windStart()
           sfx.windSet(speed / 90)
         } else if (t >= 1) {
           sfx.windStop()
         }
         plane.position.copy(_p)
-        frisbeeOrientation(plane.quaternion, now * 0.022, 0.12 + climb, Math.sin(now * 0.0025) * 0.22 * (1 - t))
-        plane.setFrisbee(getGame().profile.equippedPlane)
-        plane.setGlowSize(1.9 * settings.frisbeeGlow)
+        softballOrientation(plane.quaternion, now * 0.022, 0.12 + climb, Math.sin(now * 0.0025) * 0.22 * (1 - t))
+        plane.setSoftball(getGame().profile.equippedPlane)
+        plane.setGlowSize(1.9 * settings.ballGlow)
+      }
+      // A glowing comet trail behind the ball in its own colour, thinning to nothing.
+      const trail = trailRef.current
+      const ts = trailState.current
+      if (trail && settings.particles && released && speed < 140) {
+        const last = ts.pos[(ts.head + TRAIL - 1) % TRAIL]
+        if (ts.filled === 0 || last.distanceToSquared(_p) > 0.12) {
+          ts.pos[ts.head].copy(_p)
+          ts.head = (ts.head + 1) % TRAIL
+          ts.filled = Math.min(TRAIL, ts.filled + 1)
+        }
+        const trailColor = softballGlow(getGame().profile.equippedPlane)
+        for (let i = 0; i < ts.filled; i += 1) {
+          _trailS.setScalar(2 * (1 - i / TRAIL) * settings.ballGlow)
+          trail.setMatrixAt(i, _m.compose(ts.pos[(ts.head - 1 - i + TRAIL * 2) % TRAIL], _qIdentity, _trailS))
+          trail.setColorAt(i, trailColor)
+        }
+        trail.count = ts.filled
+        trail.instanceMatrix.needsUpdate = true
+        if (trail.instanceColor) trail.instanceColor.needsUpdate = true
+      } else {
+        if (trail) trail.count = 0
+        ts.filled = 0
       }
       runtime.flightFocus = planeFocus.copy(_p)
       writeDistance(flight.meter)
@@ -399,6 +511,8 @@ export default function Flight() {
       }
     } else if (plane) {
       plane.visible = false
+      if (trailRef.current) trailRef.current.count = 0
+      trailState.current.filled = 0
     }
     if (wasActive.current && !flight.active) {
       sfx.windStop()
@@ -526,6 +640,7 @@ export default function Flight() {
       <group ref={groupRef} />
       <group ref={gatesRef} />
       <primitive ref={planeRef} object={assets.planeModel} />
+      <primitive ref={trailRef} object={assets.trail} />
       <primitive ref={warpRef} object={assets.warpFloor} />
       <primitive ref={trophyRef} object={assets.trophies} />
       <primitive ref={streakRef} object={assets.streakMesh} />

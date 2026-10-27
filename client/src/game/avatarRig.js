@@ -37,7 +37,7 @@ import { computePose, POSED_BONES } from './playerPose'
  * player.glb ships no animation clips, so the character is posed, not animated.
  */
 
-/** The forearm bone; the frisbee rides at the hand on its end. */
+/** The forearm bone; the softball rides at the hand on its end. */
 const HAND_BONE = 'ArmR2'
 
 /**

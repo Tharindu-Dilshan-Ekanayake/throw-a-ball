@@ -1,3 +1,5 @@
+import { Color } from 'three'
+
 import { PropBuilder } from '../blocks'
 import { STYLE } from '../materials'
 
@@ -19,12 +21,22 @@ function eyes(p, { y = 0.6, spread = 0.22, size = 0.3, color = PUPIL, z = 0.5 } 
     p.box(x, y, z + 0.01, size, size * 1.12, 0.04, EYE_WHITE, STYLE.SMOOTH)
     p.box(x, y - size * 0.06, z + 0.03, size * 0.68, size * 0.82, 0.04, color, STYLE.SMOOTH)
     p.box(x - size * 0.16, y + size * 0.16, z + 0.05, size * 0.24, size * 0.24, 0.03, EYE_WHITE, STYLE.SMOOTH)
+    p.box(x + size * 0.14, y - size * 0.18, z + 0.05, size * 0.1, size * 0.1, 0.03, EYE_WHITE, STYLE.SMOOTH)
   }
 }
 
 /** The cube body, feet and an optional lighter belly/face patch. */
-function body(p, color, { size = 1, belly = null, feet = null, style = STYLE.STUDS } = {}) {
+const WHITE = new Color('#ffffff')
+/** `color` a little way towards white, for highlights. */
+const lighter = (color, amount = 0.28) => new Color(color).lerp(WHITE, amount)
+
+function body(p, color, { size = 1, belly = null, feet = null, style = STYLE.STUDS, arms = true } = {}) {
   p.box(0, 0.08 + size / 2, 0, size, size, size, color, style)
+  // A soft highlight on the crown, and stubby arms, so the cube reads as a cuddly body.
+  p.box(0, 0.08 + size + 0.012, 0, size * 0.78, 0.03, size * 0.78, lighter(color), STYLE.SMOOTH)
+  if (arms) {
+    for (const side of [-1, 1]) p.box(side * (size / 2 + 0.055), 0.08 + size * 0.34, size * 0.12, 0.13, size * 0.3, 0.22, color)
+  }
   if (belly) p.box(0, 0.08 + size * 0.36, size / 2 + 0.005, size * 0.56, size * 0.4, 0.03, belly, STYLE.SMOOTH)
   const foot = feet || color
   for (const x of [-0.3, 0.3]) for (const z of [-0.3, 0.3]) p.box(x * size, 0.06, z * size, 0.22, 0.14, 0.22, foot, STYLE.SMOOTH)
@@ -45,6 +57,32 @@ const tail = (p, color, { y = 0.45, len = 0.4, tip = null } = {}) => {
   p.box(0, y, -0.5 - len / 2, 0.14, 0.14, len, color)
   if (tip) p.box(0, y, -0.5 - len, 0.2, 0.2, 0.16, tip)
 }
+
+/** Pink cheeks under the eyes. */
+function blush(p, color = '#ff9fb2') {
+  for (const x of [-0.37, 0.37]) p.box(x, 0.37, 0.52, 0.12, 0.07, 0.02, color, STYLE.SMOOTH)
+}
+
+/** A little smile under the nose. */
+function smile(p, color = '#3a2a2a') {
+  p.box(0, 0.285, 0.535, 0.1, 0.035, 0.03, color, STYLE.SMOOTH)
+  for (const x of [-0.075, 0.075]) p.box(x, 0.31, 0.535, 0.05, 0.035, 0.03, color, STYLE.SMOOTH)
+}
+
+/** Species that get the shared blush and smile (the rest have beaks, muzzles or their own faces). */
+const NO_BLUSH = new Set(['ghost', 'skeleton', 'mummy', 'crab', 'sphinx', 'hellhound', 'demon', 'imp', 'pumpkin'])
+const NO_SMILE = new Set([
+  ...NO_BLUSH,
+  'cow',
+  'bear',
+  'parrot',
+  'owl',
+  'flamingo',
+  'phoenix',
+  'bat',
+  'turtle',
+  'witchcat',
+])
 
 const MODELS = {
   cat: (p) => {
@@ -239,6 +277,68 @@ const MODELS = {
     eyes(p, { color: '#1f6fd8', size: 0.32 })
     nose(p, '#c98a1e')
   },
+  // --- Halloween (the Spooky Egg) ---------------------------------------------------
+  pumpkin: (p) => {
+    body(p, '#ff8a1e', { feet: '#d96a0a' })
+    // Ribs down the front, a curly stem and a leaf.
+    for (const x of [-0.27, 0, 0.27]) p.box(x, 0.58, 0.505, 0.05, 0.92, 0.02, '#d96a0a', STYLE.SMOOTH)
+    p.box(0, 1.2, 0, 0.2, 0.3, 0.2, '#3f7a2a', STYLE.SMOOTH)
+    p.box(0.16, 1.38, 0, 0.18, 0.08, 0.1, '#3f7a2a', STYLE.SMOOTH, [0, 0, 0.5])
+    p.box(-0.2, 1.24, 0, 0.26, 0.05, 0.14, '#5ccf3a', STYLE.SMOOTH, [0, 0, -0.35])
+    // A carved, candle-lit face.
+    for (const x of [-0.22, 0.22]) p.box(x, 0.68, 0.51, 0.18, 0.22, 0.04, '#ffe45c', STYLE.GLOW)
+    p.box(0, 0.5, 0.51, 0.1, 0.1, 0.04, '#ffe45c', STYLE.GLOW)
+    p.box(0, 0.3, 0.51, 0.6, 0.14, 0.04, '#ffe45c', STYLE.GLOW)
+    for (const x of [-0.2, 0.2]) p.box(x, 0.2, 0.52, 0.1, 0.1, 0.04, '#d96a0a', STYLE.SMOOTH)
+  },
+  mummy: (p) => {
+    body(p, '#eadfc4', { feet: '#cdbf9c' })
+    // Wrapped in bandages: bands round the body, a dark gap across the eyes.
+    for (const y of [0.26, 0.46, 0.92]) p.box(0, y, 0, 1.03, 0.07, 1.03, '#d3c4a0', STYLE.SMOOTH)
+    p.box(0.1, 0.2, 0.505, 0.5, 0.06, 0.02, '#d3c4a0', STYLE.SMOOTH, [0, 0, 0.5])
+    p.box(0, 0.7, 0.505, 0.92, 0.3, 0.02, '#2a2430', STYLE.SMOOTH)
+    eyes(p, { y: 0.7, size: 0.26, color: '#16161c' })
+    p.box(0.45, 0.06, 0.55, 0.14, 0.34, 0.05, '#eadfc4', STYLE.SMOOTH, [0, 0, 0.15])
+  },
+  ghost: (p) => {
+    p.box(0, 0.62, 0, 1, 1, 1, '#f4f7ff', STYLE.GLOW)
+    // A ragged hem and arms held up: a sheet with a boo.
+    for (let i = 0; i < 5; i += 1) p.box(-0.4 + i * 0.2, i % 2 ? 0.08 : 0.04, 0, 0.2, i % 2 ? 0.16 : 0.08, 1, '#f4f7ff', STYLE.GLOW)
+    for (const side of [-1, 1]) p.box(side * 0.56, 0.72, 0.1, 0.14, 0.3, 0.2, '#f4f7ff', STYLE.GLOW, [0, 0, side * -0.5])
+    p.box(0, 1.14, 0, 0.8, 0.04, 0.8, '#ffffff', STYLE.GLOW)
+    eyes(p, { y: 0.68, size: 0.3, color: '#16161c' })
+    p.box(0, 0.4, 0.51, 0.14, 0.2, 0.04, '#2a2430', STYLE.SMOOTH)
+    for (const x of [-0.38, 0.38]) p.box(x, 0.46, 0.51, 0.13, 0.07, 0.02, '#ffb3d6', STYLE.SMOOTH)
+  },
+  skeleton: (p) => {
+    body(p, '#f1eee2', { feet: '#d8d3c0' })
+    // Hollow sockets with a green spark, a nose hole and a toothy grin.
+    for (const x of [-0.22, 0.22]) {
+      p.box(x, 0.68, 0.51, 0.28, 0.32, 0.04, '#1b1b22', STYLE.SMOOTH)
+      p.box(x, 0.66, 0.53, 0.1, 0.1, 0.04, '#7dff3a', STYLE.GLOW)
+    }
+    p.box(0, 0.46, 0.52, 0.1, 0.12, 0.03, '#1b1b22', STYLE.SMOOTH)
+    p.box(0, 0.28, 0.51, 0.62, 0.15, 0.03, '#ffffff', STYLE.SMOOTH)
+    for (const x of [-0.2, -0.1, 0, 0.1, 0.2]) p.box(x, 0.28, 0.53, 0.02, 0.15, 0.02, '#3a3640', STYLE.SMOOTH)
+    // Ribs on the sides and a bow tie, for style.
+    for (const y of [0.34, 0.5]) for (const side of [-1, 1]) p.box(side * 0.505, y, 0, 0.02, 0.06, 0.7, '#d8d3c0', STYLE.SMOOTH)
+    p.box(0, 0.12, 0.52, 0.22, 0.12, 0.04, '#ff8a1e', STYLE.SMOOTH)
+  },
+  witchcat: (p) => {
+    body(p, '#2a2433', { belly: '#4a3a60', feet: '#1a1420' })
+    // The witch's hat: a wide brim, a bent cone and an orange band.
+    p.box(0, 1.1, 0, 1.12, 0.08, 1.12, '#3d1e6d', STYLE.SMOOTH)
+    p.box(0, 1.16, 0, 0.74, 0.08, 0.74, '#ff9a1e', STYLE.GLOW)
+    p.box(0, 1.34, 0, 0.62, 0.3, 0.62, '#4b2a85', STYLE.SMOOTH)
+    p.box(0, 1.6, 0, 0.4, 0.28, 0.4, '#4b2a85', STYLE.SMOOTH)
+    p.box(0.08, 1.84, 0, 0.2, 0.28, 0.2, '#4b2a85', STYLE.SMOOTH, [0, 0, -0.35])
+    // Glowing eyes, whiskers and a curled tail with a purple tip.
+    eyes(p, { color: '#ffd23a' })
+    nose(p, '#ff6f8f')
+    for (const side of [-1, 1]) for (const dy of [-0.03, 0.04]) p.box(side * 0.42, 0.42 + dy, 0.52, 0.2, 0.014, 0.02, '#e8dcff', STYLE.SMOOTH, [0, 0, side * (0.12 + dy * 3)])
+    tail(p, '#2a2433', { y: 0.7, len: 0.4, tip: '#b15cff' })
+    p.box(0, 1.0, -0.62, 0.14, 0.4, 0.14, '#2a2433')
+  },
 }
 
 const cache = new Map()
@@ -248,6 +348,9 @@ export function petGeometry(id) {
   if (!cache.has(id)) {
     const p = new PropBuilder()
     ;(MODELS[id] || MODELS.cat)(p)
+    // The shared finishing touches: rosy cheeks and a little smile.
+    if (!NO_BLUSH.has(id)) blush(p)
+    if (!NO_SMILE.has(id)) smile(p)
     cache.set(id, p.build())
   }
   return cache.get(id)

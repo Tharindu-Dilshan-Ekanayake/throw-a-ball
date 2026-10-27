@@ -71,7 +71,7 @@ export function FallbackAvatar({ motionRef, handRef, onReady }) {
       _m.compose(_p, _q.identity(), _s)
       instanced.setMatrixAt(i, _pivot.multiply(_rot).multiply(_m))
 
-      // The held frisbee rides at the bottom of the right arm, turned with it.
+      // The held softball rides at the bottom of the right arm, turned with it.
       const hand = handRef?.current
       if (part === RIGHT_ARM && hand) {
         hand.position.set(0, -part.h + 0.06, 0).applyEuler(_e)

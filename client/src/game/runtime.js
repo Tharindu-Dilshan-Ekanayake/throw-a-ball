@@ -24,12 +24,12 @@ export const runtime = {
     throwTimer: 0,
     /** Throws started so far; other players see one each time it goes up. */
     throwSeq: 0,
-    /** True from a throw's release until the frisbee is back in the hand. */
-    frisbeeAway: false,
-    /** Seconds left on the catch when the frisbee comes back. */
+    /** True from a throw's release until the softball is back in the hand. */
+    ballAway: false,
+    /** Seconds left on the catch when the softball comes back. */
     catchTimer: 0,
-    /** World position of the frisbee in the hand: where throws leave from. */
-    frisbeeAt: new Vector3(SPAWN.x, 1, SPAWN.z),
+    /** World position of the softball in the hand: where throws leave from. */
+    ballAt: new Vector3(SPAWN.x, 1, SPAWN.z),
     /** Set when the controller should ignore input (flight, cutscenes). */
     frozen: false,
   },

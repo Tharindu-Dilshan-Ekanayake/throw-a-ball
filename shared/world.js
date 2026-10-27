@@ -69,12 +69,12 @@ export function laneRect(index) {
   }
 }
 
-// --- Frisbee shop -------------------------------------------------------------------
+// --- Softball shop -------------------------------------------------------------------
 
 /**
- * The frisbee shop: an open-air yard east of the plaza with two display stages, the
- * first ten frisbees on the low front one and the next ten on the higher back one,
- * and a big FRISBEES board behind. Both stages are low enough to walk straight onto.
+ * The softball shop: an open-air yard east of the plaza with two display stages, the
+ * first ten softballs on the low front one and the next ten on the higher back one,
+ * and a big SOFTBALLS board behind. Both stages are low enough to walk straight onto.
  */
 export const SHOP = { minX: 22, maxX: 48, minZ: -26, maxZ: 12 }
 export const SHOP_STAGES = [
@@ -113,26 +113,37 @@ export const padRect = (pad) => ({
 // --- Eggs, showcases, boards --------------------------------------------------------
 
 export const EGG_STANDS = [
-  { eggId: 'basic', x: 12, z: 22 },
-  { eggId: 'meadow', x: 20, z: 22 },
-  { eggId: 'sunset', x: 28, z: 22 },
-  { eggId: 'unicorn', x: 36, z: 22 },
+  // The four everyday eggs sit on a shallow arc rather than in a straight row.
+  { eggId: 'basic', x: 10, z: 26 },
+  { eggId: 'meadow', x: 19.5, z: 21.5 },
+  { eggId: 'sunset', x: 29, z: 21.5 },
+  { eggId: 'unicorn', x: 38.5, z: 26 },
   { eggId: 'demon', x: -12, z: -14, big: true },
+  // The Halloween egg, in the graveyard by the World 2 portal.
+  { eggId: 'spooky', x: 15.5, z: -26.5 },
 ]
 export const EGG_TRIGGER_RADIUS = 4.2
 
 /** Limited premium pet on display. */
-export const SPHINX_STAND = { x: 45, z: 21 }
+export const SPHINX_STAND = { x: 46, z: 28.5 }
 
 export const LEADERBOARDS = [
-  { id: 'rebirths', x: 12, z: 33.5 },
-  { id: 'playtime', x: 24, z: 33.5 },
-  { id: 'power', x: 36, z: 33.5 },
+  // Stepped: the middle board stands a little forward of the outer two.
+  { id: 'rebirths', x: 12, z: 34 },
+  { id: 'playtime', x: 24, z: 32 },
+  { id: 'power', x: 36, z: 34 },
 ]
 
 export const PORTAL = { x: 24, z: -34, radius: 3.4 }
-export const FREE_REWARD = { x: 12, z: 10, radius: 3 }
-export const WATERFALL = { x: 38, z: -40 }
+export const FREE_REWARD = { x: -14, z: 4, radius: 3 }
+/**
+ * The big waterfall on the cliff behind the lobby, past the egg stands and leaderboards
+ * (south of the plaza, behind spawn). `x`/`z` are the middle of its foot, where the
+ * cliff face stands; `width` is the main sheet; the cliff is a tall block of hill, and the
+ * river runs back over its top.
+ */
+export const WATERFALL = { x: -3, z: 38, width: 14 }
+export const WATERFALL_CLIFF = { minX: -23, maxX: 17, minZ: 38, maxZ: 90, height: 40 }
 
 // --- Collision ----------------------------------------------------------------------
 

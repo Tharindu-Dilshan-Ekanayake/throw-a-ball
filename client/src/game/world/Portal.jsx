@@ -13,12 +13,15 @@ const fragmentShader = /* glsl */ `
     vec2 p = vUv - 0.5;
     float r = length(p) * 2.0;
     float a = atan(p.y, p.x);
-    // A spiral that winds inwards over time.
+    // A spiral that winds inwards over time: violet depths, pumpkin-orange fire
+    // along the arms and a sickly green mist drifting through.
     float swirl = sin(a * 3.0 + r * 9.0 - uTime * 3.0);
-    vec3 deep = vec3(0.12, 0.45, 0.95);
-    vec3 ice = vec3(0.75, 0.95, 1.0);
-    vec3 col = mix(deep, ice, smoothstep(-0.2, 0.9, swirl) * (1.0 - r * 0.6));
-    col += (1.0 - smoothstep(0.0, 0.35, r)) * 0.6;
+    vec3 deep = vec3(0.22, 0.04, 0.42);
+    vec3 fire = vec3(1.0, 0.5, 0.08);
+    vec3 mist = vec3(0.45, 1.0, 0.35);
+    vec3 col = mix(deep, fire, smoothstep(-0.2, 0.9, swirl) * (1.0 - r * 0.6));
+    col += mist * smoothstep(0.6, 1.0, sin(a * 5.0 - r * 13.0 + uTime * 2.0)) * 0.22 * r;
+    col += vec3(1.0, 0.78, 0.3) * (1.0 - smoothstep(0.0, 0.35, r)) * 0.6;
     float edge = 1.0 - smoothstep(0.92, 1.0, r);
     gl_FragColor = vec4(col, edge * 0.92);
     #include <colorspace_fragment>
@@ -36,7 +39,7 @@ const vertexShader = /* glsl */ `
 /** Swirl radius; the frame around it is part of the static blocks (see portalFrame.js). */
 const RADIUS = PORTAL.radius - 0.4
 
-/** The World 2 portal's animated ice swirl: one quad, one cheap shader. */
+/** The World 2 portal's animated Halloween swirl: one quad, one cheap shader. */
 export function Portal() {
   const ref = useRef(null)
   const material = useMemo(

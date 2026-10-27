@@ -24,20 +24,21 @@ export const PRESETS = {
     /** Max side of any generated texture. */
     maxTexture: 512,
     /**
-     * Other players are drawn this far away - the whole lobby, as the blocky figures
-     * are one draw call for everybody - and the nearest `remoteAvatars` of them within
-     * `remoteAvatarDistance` as their real avatar.
+     * Other players are drawn this far away - the whole lobby - and the nearest
+     * `remoteAvatars` of them within `remoteAvatarDistance` as their real avatar. A lobby
+     * holds eight players, so on every preset that is everyone else, however far away;
+     * the blocky stand-in is only a fallback for a bigger crowd.
      */
     remoteDrawDistance: 150,
-    remoteAvatars: 3,
-    remoteAvatarDistance: 45,
+    remoteAvatars: 7,
+    remoteAvatarDistance: 150,
     remoteNameDistance: 40,
     /** World labels fade out past this. */
     labelDistance: 70,
     /** How much of the track's side scenery to spawn (0-1). */
     decorDensity: 0.45,
-    /** Frisbee halo size multiplier. */
-    frisbeeGlow: 0.8,
+    /** Softball halo size multiplier. */
+    ballGlow: 0.8,
   },
   MEDIUM: {
     dpr: 1.25,
@@ -51,12 +52,12 @@ export const PRESETS = {
     cloudCount: 14,
     maxTexture: 1024,
     remoteDrawDistance: 150,
-    remoteAvatars: 5,
-    remoteAvatarDistance: 60,
+    remoteAvatars: 7,
+    remoteAvatarDistance: 150,
     remoteNameDistance: 55,
     labelDistance: 110,
     decorDensity: 0.75,
-    frisbeeGlow: 1,
+    ballGlow: 1,
   },
   HIGH: {
     dpr: 1.5,
@@ -71,11 +72,11 @@ export const PRESETS = {
     maxTexture: 1024,
     remoteDrawDistance: 150,
     remoteAvatars: 7,
-    remoteAvatarDistance: 80,
+    remoteAvatarDistance: 150,
     remoteNameDistance: 70,
     labelDistance: 150,
     decorDensity: 1,
-    frisbeeGlow: 1,
+    ballGlow: 1,
   },
 }
 

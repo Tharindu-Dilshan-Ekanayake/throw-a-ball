@@ -9,7 +9,7 @@ const CLICK_SLOP_PX = 8
 
 /**
  * Click throws: a click or tap on the world (not a drag, and not on the HUD, which
- * sits above the canvas) throws the frisbee from your hand for a x1 training throw,
+ * sits above the canvas) throws the softball from your hand for a x1 training throw,
  * anywhere outside the throw area (see throwFromHand).
  */
 export function ClickThrow() {

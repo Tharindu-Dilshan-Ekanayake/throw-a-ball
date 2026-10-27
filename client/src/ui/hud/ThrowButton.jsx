@@ -1,5 +1,7 @@
 import { useEffect } from 'react'
 
+import { TUTORIAL } from '@shared/balance'
+
 import { actions } from '../../net/actions'
 import { useGame } from '../../store/game'
 import Icon from '../Icon'
@@ -13,6 +15,8 @@ import { GRADIENTS, u } from './style'
  */
 export function ThrowButton() {
   const visible = useGame((s) => s.zone.throwArea && !s.flight && !s.throwResult)
+  // The bouncing arrow is part of the guide's first step only; it goes once you've thrown.
+  const guiding = useGame((s) => TUTORIAL[s.profile.tutorialStep]?.event === 'throw')
 
   useEffect(() => {
     if (!visible) return undefined
@@ -27,7 +31,7 @@ export function ThrowButton() {
   if (!visible) return null
   return (
     <div className="pointer-events-none absolute left-1/2 flex -translate-x-1/2 flex-col items-center" style={{ bottom: u(236) }}>
-      <Icon name="arrowDown" size={u(76)} className="pp-bounce" style={{ marginBottom: u(6) }} />
+      {guiding && <Icon name="arrowDown" size={u(76)} className="pp-bounce" style={{ marginBottom: u(6) }} />}
       <ChunkyButton gradient={GRADIENTS.greenButton} onClick={() => actions.throwPlane()} style={{ width: u(270), height: u(86) }} radius={22} border={5}>
         <span style={{ fontSize: u(62) }}>
           <StrokeText stroke={u(11)}>THROW</StrokeText>

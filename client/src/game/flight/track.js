@@ -4,6 +4,7 @@ import { mulberry32 } from '@shared/rng'
 import { THROW_LINE_Z } from '@shared/world'
 
 import { BlockSet } from '../blocks'
+import { ROCK, rockTower, WATER_COLOR, waterSheet } from '../world/rockArch'
 import { STYLE } from '../materials'
 import { addTree } from '../world/terrain'
 
@@ -101,6 +102,12 @@ export const ZONE_THEMES = {
 
 export const themeAt = (m) => ZONE_THEMES[ZONES[zoneIndexAt(m)].id]
 
+/**
+ * Where each gate's name floats: high over the crown (above the arch, so the name is
+ * never behind stone) and in front of every rock face, so nothing can cover it.
+ */
+export const GATE_LABEL = { y: 24, z: 4.8 }
+
 /** Gate arches: a welcome arch into the Neighbourhood, then one at each zone start. */
 export const GATES = ZONES.map((zone, i) => ({ zone, meter: i === 0 ? 60 : zone.start }))
 
@@ -135,29 +142,35 @@ function fence(b, x, z0, z1) {
   for (let z = Math.min(z0, z1); z <= Math.max(z0, z1); z += 5) b.addOn(x, 0, z, 0.3, 1.3, 0.3, '#f2f2f2', STYLE.SMOOTH)
 }
 
-function school(b, side) {
-  const x = side * 25
+/**
+ * The opening scenery on either side of the first stretch: a craggy rock formation with
+ * a waterfall. A sheer face stands to the road with a stream running over its top and
+ * falling into a pool, small cascades at its corners, rock peaks rising behind and
+ * mossy ledges, with glowing blue crystals on the summits. Both sides are the same, so
+ * the track opens between a matching pair.
+ */
+function rockFalls(b, side) {
+  const rand = mulberry32(4242)
   const z = zAt(40)
-  b.addOn(x, 0, z, 18, 11, 30, '#c95a4a', STYLE.WINDOWS)
-  b.addOn(x, 11, z, 18.8, 0.8, 30.8, '#f2f2f2')
-  // Clock tower.
-  b.addOn(x - side * 2, 11.8, z + 11, 5, 7, 5, '#d36a56', STYLE.WINDOWS)
-  b.addOn(x - side * 2, 18.8, z + 11, 5.6, 0.8, 5.6, '#f2f2f2')
-  b.addOn(x - side * 2 - side * 2.55, 14, z + 11, 0.2, 2.6, 2.6, '#ffffff', STYLE.SMOOTH)
-  b.addOn(x - side * 9.05, 6.5, z - 4, 0.2, 2, 6, '#2f6be0', STYLE.GLOW)
-}
-
-function court(b, side) {
-  const x = side * 24
-  const z = zAt(36)
-  // Each layer stands a clear step on the one below, so none of the tops fight.
-  b.addOn(x, 0, z, 16, 0.12, 24, '#2f7fe6')
-  b.addOn(x, 0.12, z, 14, 0.08, 22, '#3a8ff0')
-  b.addOn(x, 0.2, z, 14, 0.06, 0.25, '#ffffff', STYLE.SMOOTH)
-  for (const dz of [-10.5, 10.5]) {
-    b.addOn(x, 0, z + dz, 0.4, 4.2, 0.4, '#e8e8e8', STYLE.SMOOTH)
-    b.addOn(x, 3.6, z + dz - Math.sign(dz) * 0.4, 2, 1.4, 0.2, '#ffffff', STYLE.SMOOTH)
-  }
+  const FACE = 20
+  const WALL_TOP = 17
+  // The sheer face, its top a rocky ledge with moss.
+  b.addOn(side * 25, 0, z, 10, WALL_TOP, 14, ROCK, STYLE.TERRAIN)
+  b.addOn(side * 25, WALL_TOP, z, 10.4, 0.5, 14.4, ROCK, STYLE.TERRAIN)
+  // Rock peaks behind the face and either side of the river, and a broad massif at the back.
+  rockTower(b, side * 27, WALL_TOP, z - 6.5, 25, 6, 6, rand)
+  rockTower(b, side * 27, WALL_TOP, z + 6.5, 23, 6, 6, rand)
+  rockTower(b, side * 33, 0, z, 30, 9, 22, rand)
+  rockTower(b, side * 25, 0, z - 10, 10, 6, 5, rand)
+  rockTower(b, side * 25, 0, z + 10, 8, 6, 5, rand)
+  // The river over the top, running to the lip.
+  b.addOn(side * 26.1, WALL_TOP + 0.5, z, 13.2, 0.4, 5, WATER_COLOR, STYLE.WATER)
+  // The main fall and a small cascade at each corner of the face.
+  waterSheet(b, side * (FACE - 0.4), WALL_TOP + 0.4, z, 5)
+  for (const dz of [-5.8, 5.8]) waterSheet(b, side * (FACE - 0.4), WALL_TOP * 0.55, z + dz, 1.2)
+  // Blue crystals on the summits.
+  b.add(side * 27, 26.4, z - 6.5, 0.9, 2.4, 0.9, '#7fe2ff', STYLE.GLOW, 0.4, 0, 0.2)
+  b.add(side * 33, 31.4, z, 1.2, 3, 1.2, '#7fe2ff', STYLE.GLOW, 0.2, 0, -0.2)
 }
 
 function building(b, x, z, rand) {
@@ -258,14 +271,42 @@ function planet(b, x, y, z, r, color, ring) {
 
 // --- Gate --------------------------------------------------------------------------
 
+/**
+ * Each zone starts at a carved rock gateway: two ragged towers of stacked stone, joined
+ * over the road by a corbelled arch that closes in a crown, a waterfall pouring off the
+ * underside of each ledge into a pool by the kerb, and a glowing keystone in the zone's
+ * colour. The ball flies straight through the open middle. The stage name floats above
+ * it (GATE_LABEL).
+ */
 function gate(b, meter, color) {
   const z = zAt(meter)
-  for (const x of [-11.5, 11.5]) {
-    b.addOn(x, 0, z, 2, 1, 2, '#e9eef5')
-    b.addOn(x, 1, z, 1.6, 13, 1.6, color, STYLE.STRIPES)
+  const rand = mulberry32(meter * 31 + 7)
+  const OUTER = 19.5
+  const ARCH = [
+    // [base height, inner edge of the ledge, depth]; each ledge overlaps the next a
+    // little, so their depths differ and no two faces share a plane.
+    [12, 11.2, 7],
+    [14.2, 8.2, 6.7],
+    [16.4, 4.8, 6.4],
+  ]
+  for (const side of [-1, 1]) {
+    // The tower, broad and rough, with a second smaller spire beside it.
+    rockTower(b, side * 17.5, 0, z, 21 + rand() * 2, 9.5, 8, rand)
+    rockTower(b, side * 21.5, 0, z + (rand() - 0.5) * 3, 13 + rand() * 3, 4.5, 5, rand)
+    // Ledges stepping in over the road.
+    for (const [base, inner, depth] of ARCH) {
+      const w = OUTER - inner - base * 0.02
+      b.addOn(side * (inner + w / 2), base, z, w, 2.3, depth, ROCK, STYLE.TERRAIN, (rand() - 0.5) * 0.1)
+    }
+    // Water pouring off the first ledge's underside, with a lip of water on it.
+    b.addOn(side * 11.9, 11.7, z, 1.6, 0.4, 5, '#38d6ff', STYLE.WATER)
+    waterSheet(b, side * 11.9, 11.8, z, 4.4)
+    // Zone-coloured crystals on the tower tops.
+    b.add(side * 17.5, 23.8 + rand(), z, 1.2, 2.6, 1.2, color, STYLE.GLOW, 0.4, 0, 0.18)
   }
-  b.addOn(0, 13.5, z, 25, 1.6, 1.6, color, STYLE.STRIPES)
-  b.addOn(0, 11.6, z, 25, 0.4, 0.5, '#ffffff', STYLE.GLOW)
+  // The crown and its keystone.
+  b.addOn(0, 18.65, z, 9.8, 2.3, 7.2, ROCK, STYLE.TERRAIN)
+  for (const face of [-1, 1]) b.add(0, 18, z + face * 3.6, 1.8, 2.4, 0.6, color, STYLE.GLOW, 0, 0, Math.PI / 4)
 }
 
 // --- Chunk builder -----------------------------------------------------------------
@@ -287,7 +328,7 @@ const DECOR = {
       fence(b, 10.6, zAt(fenceFrom), zAt(m1))
     }
     sideItems(m0, m1, 15, rand, density, (m, side) => {
-      // The school and the basketball court own the first stretch.
+      // The rock formations own the first stretch.
       if (m < 62) return
       house(b, side * (19 + rand() * 6), zAt(m), rand, -side)
       if (rand() < 0.7) addTree(b, side * (13.5 + rand()), 0, zAt(m + 6), 0.8, rand)
@@ -297,8 +338,8 @@ const DECOR = {
       if (m > 125) addTree(b, side * (34 + rand() * 30), 0, zAt(m), 0.9 + rand() * 0.4, rand)
     })
     if (m0 === 0) {
-      school(b, -1)
-      court(b, 1)
+      rockFalls(b, -1)
+      rockFalls(b, 1)
     }
   },
   city(b, m0, m1, rand, density) {

@@ -8,7 +8,7 @@ import Icon from '../Icon'
 import StrokeText from '../StrokeText'
 import { GRADIENTS, u } from './style'
 
-/** "409m" under the Auto Throw button while a frisbee is in the air. */
+/** "409m" under the Auto Throw button while a softball is in the air. */
 function DistanceCounter() {
   // A callback ref: registered when the element mounts, cleared when it unmounts.
   const ref = useCallback((el) => setDistanceElement(el), [])

@@ -35,7 +35,7 @@ export function TouchControls() {
   const baseRef = useRef(null)
   const knobRef = useRef(null)
   const active = useRef({ id: null, x: 0, y: 0 })
-  // No throwing while a menu is open or a frisbee is already in the air.
+  // No throwing while a menu is open or a softball is already in the air.
   const busy = useGame((s) => Boolean(s.panel || s.flight || s.throwResult))
 
   // A touchscreen laptop can start with a mouse; show the controls on first touch.
@@ -143,7 +143,7 @@ export function TouchControls() {
           }}
         >
           <span className="pp-gloss" style={{ borderRadius: '42px 42px 24px 24px' }} />
-          <img src={iconUrl('frisbee')} alt="" width={50} height={50} draggable={false} className="pointer-events-none" />
+          <img src={iconUrl('softball')} alt="" width={50} height={50} draggable={false} className="pointer-events-none" />
         </button>
       )}
 

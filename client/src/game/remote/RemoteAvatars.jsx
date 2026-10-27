@@ -8,14 +8,14 @@ import { FACE_FLAT, FACE_UPRIGHT, GRIP_FLAT, GRIP_UPRIGHT, heldFlatness } from '
 import { runtime } from '../runtime'
 
 /** How often the set of fully drawn players is reconsidered. */
-const PICK_MS = 500
+const PICK_MS = 250
 /** A sprint: full stride amplitude, as for your own character. */
 const MAX_SPEED = 7.5 * 1.45
 
 /**
  * One other player as their real Bloxity avatar, dressed as they are and posed by the
  * same playerPose as yours, from what the network says they're doing: walking pace,
- * jumping, and each throw. Their frisbee is drawn by RemotePlayers, which reads the
+ * jumping, and each throw. Their softball is drawn by RemotePlayers, which reads the
  * grip this component keeps on their palm (`r.grip`).
  */
 function RemoteAvatar({ sessionId, look }) {
@@ -27,10 +27,12 @@ function RemoteAvatar({ sessionId, look }) {
 
   useEffect(() => {
     const r = remotePlayers.get(sessionId)
-    if (r) r.grip = gripRef.current
+    const grip = gripRef.current
+    if (r) r.grip = grip
     return () => {
+      // The stand-in avatar (below) and the dressed one swap places; only clear the grip if it is still ours.
       const gone = remotePlayers.get(sessionId)
-      if (gone) gone.grip = null
+      if (gone && gone.grip === grip) gone.grip = null
     }
   }, [sessionId])
 
@@ -75,8 +77,9 @@ function RemoteAvatar({ sessionId, look }) {
 
 /**
  * The other players nearest the camera, as their real avatars: as many as the quality
- * preset allows (`remoteAvatars`), within `remoteAvatarDistance`. Everyone else is the
- * cheap blocky figure RemotePlayers draws (`r.fullAvatar` tells it who's covered).
+ * preset allows (`remoteAvatars`), within `remoteAvatarDistance` - which, with a lobby of
+ * eight, is everyone. Only a bigger crowd leaves anyone as the cheap blocky figure
+ * RemotePlayers draws (`r.fullAvatar` tells it who's covered).
  * Chosen twice a second, never per frame, so React only re-renders when the set of
  * players (or an outfit) actually changes.
  */
@@ -109,9 +112,14 @@ export function RemoteAvatars() {
     return () => clearInterval(id)
   }, [camera])
 
+  // While someone's outfit downloads they are the Bloxity base body (already loaded at
+  // start-up), not the blocky stand-in and not nothing; the dressed avatar replaces it
+  // the moment it is ready.
   return shown.map((s) => (
     <Suspense key={`${s.sessionId}:${s.lookKey}`} fallback={null}>
-      <RemoteAvatar sessionId={s.sessionId} look={s.look} />
+      <Suspense fallback={<RemoteAvatar sessionId={s.sessionId} look={null} />}>
+        <RemoteAvatar sessionId={s.sessionId} look={s.look} />
+      </Suspense>
     </Suspense>
   ))
 }

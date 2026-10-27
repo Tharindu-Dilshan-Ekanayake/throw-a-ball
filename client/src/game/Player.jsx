@@ -9,7 +9,7 @@ import { getGame } from '../store/game'
 import { getQuality } from '../store/quality'
 import ErrorBoundary from '../ui/ErrorBoundary'
 import FallbackAvatar from './FallbackAvatar'
-import { createFrisbeeModel } from './frisbee'
+import { createSoftballModel } from './softball'
 import PlayerAvatar from './PlayerAvatar'
 import {
   CATCH_TIME,
@@ -21,6 +21,7 @@ import {
   RELEASE_AT,
   THROW_TIME,
 } from './playerPose'
+import { flight } from './flight/flightControl'
 import { runtime } from './runtime'
 import useKeyboard from './useKeyboard'
 
@@ -45,14 +46,14 @@ const _up = new Vector3(0, 1, 0)
 const _clamped = { x: 0, z: 0 }
 
 /**
- * The equipped frisbee in the right hand, glowing in its own colour. It lives inside
+ * The equipped softball in the right hand, glowing in its own colour. It lives inside
  * the hand anchor the avatar moves onto the palm each frame; here it only picks its
  * grip: upright at the side, turning flat through the wind-up and coming back flat
  * from a catch. Hidden while it is away (thrown), so the flying copy reads as this one.
  */
-function HeldFrisbee() {
+function HeldSoftball() {
   const ref = useRef(null)
-  const model = useMemo(() => createFrisbeeModel({ glowSize: 1.5, glowIntensity: 0.6 }), [])
+  const model = useMemo(() => createSoftballModel({ glowSize: 1.5, glowIntensity: 0.6 }), [])
 
   useEffect(() => () => model.dispose(), [model])
 
@@ -60,14 +61,14 @@ function HeldFrisbee() {
     const group = ref.current
     if (!group) return
     const player = runtime.player
-    group.setFrisbee(getGame().profile.equippedPlane)
-    group.setGlowSize(1.5 * getQuality().frisbeeGlow)
-    group.visible = !player.frisbeeAway
+    group.setSoftball(getGame().profile.equippedPlane)
+    group.setGlowSize(1.5 * getQuality().ballGlow)
+    group.visible = !player.ballAway
     const flat = heldFlatness(player.throwTimer, player.catchTimer)
     group.position.lerpVectors(GRIP_UPRIGHT, GRIP_FLAT, flat)
     group.quaternion.slerpQuaternions(FACE_UPRIGHT, FACE_FLAT, flat)
     // Where a throw starts from: the training shots and the stage flight read it.
-    group.getWorldPosition(player.frisbeeAt)
+    group.getWorldPosition(player.ballAt)
   })
 
   return <primitive ref={ref} object={model} scale={0.95} />
@@ -244,14 +245,14 @@ export function Player({ onAvatarReady }) {
     }
 
     // --- Throw and catch -------------------------------------------------------
-    // The frisbee is away from the release until the swing ends (a training shot), or
+    // The softball is away from the release until the swing ends (a training shot), or
     // for the whole flight off the stage; it comes back into the hand with a catch.
     player.throwTimer = Math.max(0, player.throwTimer - delta)
-    const wasAway = player.frisbeeAway
-    player.frisbeeAway =
-      player.throwTimer > 0 ? player.throwTimer <= THROW_TIME * (1 - RELEASE_AT) : runtime.camera.mode === 'flight'
-    player.catchTimer = wasAway && !player.frisbeeAway ? CATCH_TIME : Math.max(0, player.catchTimer - delta)
-    // A new throw starts with the frisbee already in hand.
+    const wasAway = player.ballAway
+    player.ballAway =
+      player.throwTimer > 0 ? player.throwTimer <= THROW_TIME * (1 - RELEASE_AT) : flight.active
+    player.catchTimer = wasAway && !player.ballAway ? CATCH_TIME : Math.max(0, player.catchTimer - delta)
+    // A new throw starts with the softball already in hand.
     if (player.throwTimer > 0) player.catchTimer = 0
 
     // --- Publish motion ---------------------------------------------------------
@@ -275,7 +276,7 @@ export function Player({ onAvatarReady }) {
     <group ref={groupRef}>
       <group ref={visualRef}>
         <group ref={handRef}>
-          <HeldFrisbee />
+          <HeldSoftball />
         </group>
         <ErrorBoundary fallback={<FallbackAvatar motionRef={motionRef} handRef={handRef} onReady={onAvatarReady} />}>
           <Suspense fallback={<FallbackAvatar motionRef={motionRef} handRef={handRef} />}>

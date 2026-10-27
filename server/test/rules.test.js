@@ -10,6 +10,7 @@ import {
   buyPlane,
   createProfile,
   dailyStatus,
+  advanceTutorial,
   hatchEgg,
   normalizeProfile,
   throwDistance,
@@ -37,7 +38,7 @@ test('training levels up every 10 throws and stops at the cap', () => {
   const p = createProfile('a', 'A')
   for (let i = 0; i < 30; i += 1) applyTrain(p, 0, 0)
   assert.equal(p.level, 2)
-  assert.equal(p.power, 30, 'classic frisbee in the free lane: +1 per throw at levels 1-2')
+  assert.equal(p.power, 30, 'classic softball in the free lane: +1 per throw at levels 1-2')
 })
 
 test('rebirth needs max level, resets power, keeps wins and planes', () => {
@@ -140,11 +141,36 @@ test('click throws train at x1, rate limited and not in the throw area', () => {
   assert.equal(p.power, 2)
 })
 
-test('only brand-new players get the tutorial', () => {
+test('only new players get the tutorial', () => {
   const fresh = normalizeProfile({ rebirths: 0, tutorialStep: 1 }, 'a', 'A')
   assert.equal(fresh.tutorialStep, 1)
+  // Rebirthed but not yet bought a ball: still on the last step (the shop).
   const reborn = normalizeProfile({ rebirths: 1, level: 0, tutorialStep: 1 }, 'b', 'B')
-  assert.equal(reborn.tutorialStep, TUTORIAL.length)
+  assert.equal(reborn.tutorialStep, TUTORIAL.findIndex((step) => step.event === 'rebirth') + 1)
+  assert.equal(TUTORIAL[reborn.tutorialStep].event, 'buyPlane')
+  // Anyone who already owns a second ball is done.
+  const veteran = normalizeProfile({ rebirths: 1, ownedPlanes: ['paper', 'sky'], tutorialStep: 1 }, 'c', 'C')
+  assert.equal(veteran.tutorialStep, TUTORIAL.length)
+})
+
+test('the guide runs throw, train, rebirth, then buying the 3-Wins ball, and ends', () => {
+  const p = createProfile('g', 'G')
+  assert.equal(TUTORIAL.map((step) => step.event).join(','), 'throw,train,rebirth,buyPlane')
+  assert.ok(advanceTutorial(p, 'throw'))
+  assert.ok(advanceTutorial(p, 'train'))
+  // Out of order events do nothing.
+  assert.ok(!advanceTutorial(p, 'buyPlane'))
+  p.level = levelCap(0)
+  assert.ok(applyRebirth(p).ok)
+  // A rebirth no longer ends the guide: it completes its own step and the shop is next.
+  assert.ok(p.tutorialStep < TUTORIAL.length)
+  assert.ok(advanceTutorial(p, 'rebirth'))
+  assert.equal(TUTORIAL[p.tutorialStep].event, 'buyPlane')
+  p.wins = 3
+  assert.equal(PLANES[1].cost, 3)
+  assert.ok(buyPlane(p, PLANES[1].id).ok)
+  assert.ok(advanceTutorial(p, 'buyPlane'))
+  assert.equal(p.tutorialStep, TUTORIAL.length)
 })
 
 test('the shop sells for Wins only', () => {

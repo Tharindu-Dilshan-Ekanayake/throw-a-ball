@@ -14,12 +14,12 @@ import { Quaternion, Vector3 } from 'three'
  */
 
 /** Seconds a throw lasts, wind-up to back in the stance. */
-export const THROW_TIME = 0.42
-/** Fraction of the throw at which the frisbee leaves the hand. */
-export const RELEASE_AT = 0.3
+export const THROW_TIME = 0.62
+/** Fraction of the throw at which the softball leaves the hand. */
+export const RELEASE_AT = 0.46
 /** Seconds from the start of a throw to the release. */
 export const RELEASE_DELAY = THROW_TIME * RELEASE_AT
-/** Seconds the catch takes, from snatching the frisbee to holding it upright again. */
+/** Seconds the catch takes, from snatching the softball to holding it upright again. */
 export const CATCH_TIME = 0.26
 
 export const POSED_BONES = [
@@ -70,7 +70,7 @@ function blend(name, swing, sway, twist, k) {
 
 /**
  * Ready stance: feet apart with the left one forward, knees soft, left arm up in front
- * for balance and the frisbee arm cocked back, all breathing gently.
+ * for balance and the softball arm cocked back, all breathing gently.
  */
 function stance(w, time) {
   const breath = Math.sin(time * 1.8)
@@ -127,24 +127,60 @@ function airborne(vy) {
 }
 
 /**
- * The throw, `p` 0..1 over THROW_TIME: wind up with the frisbee arm back and out and
- * the shoulders turned away, then both arms sweep forward as the body turns into it,
- * the frisbee leaving the hand at RELEASE_AT, then ease back into the stance.
+ * Eased value along `frames` ([p, value, ease?] keys, ascending in p) at `p`. A key with
+ * ease 1 is approached accelerating (the whip of the arm) instead of smoothly.
  */
+function track(p, frames) {
+  if (p <= frames[0][0]) return frames[0][1]
+  for (let i = 1; i < frames.length; i += 1) {
+    const key = frames[i]
+    if (p <= key[0]) {
+      const prev = frames[i - 1]
+      const t = clamp01((p - prev[0]) / (key[0] - prev[0]))
+      return lerp(prev[1], key[1], key[2] ? t * t : t * t * (3 - 2 * t))
+    }
+  }
+  return frames[frames.length - 1][1]
+}
+
+/*
+ * The overhand throw's keyframes, over THROW_TIME (the softball leaves at p = RELEASE_AT,
+ * 0.46): 0-0.28 wind up - a crouch, then the player springs off the ground with the
+ * throwing arm cocked high behind, the front arm pointing at the target and the knees
+ * tucked; 0.28-0.46 rising to the top of the jump as the hips and shoulders unwind, the
+ * elbow leads and the forearm snaps through, the ball leaving at the very top;
+ * 0.46-0.62 the follow-through - arm sweeping down across the body while falling;
+ * 0.72 landing in a crouch, then back to the stance.
+ */
+const ARM_R_SWING = [[0, 0.45], [0.28, 1.25], [0.46, -2.5, 1], [0.62, -1.25], [1, -0.9]]
+const ARM_R_SWAY = [[0, 0.28], [0.28, 1.0], [0.46, 0.12, 1], [0.62, -0.3], [1, -0.3]]
+const ARM_R_ELBOW = [[0, -0.4], [0.28, -1.1], [0.4, -1.75], [0.46, -0.1, 1], [0.62, -0.6], [1, -0.6]]
+const ARM_L_SWING = [[0, -0.7], [0.28, -1.45], [0.46, -0.3], [0.62, -0.45], [1, -0.45]]
+const ARM_L_SWAY = [[0, 0.12], [0.28, 0.22], [0.46, 0.4], [1, 0.2]]
+const ARM_L_ELBOW = [[0, -0.85], [0.28, -0.2], [0.46, -1.5], [1, -1.0]]
+const SPINE_SWING = [[0, -0.07], [0.28, 0.14], [0.46, -0.4, 1], [0.62, -0.36], [1, -0.2]]
+const SPINE_TWIST = [[0, -0.12], [0.28, -0.6], [0.46, 0.6, 1], [0.62, 0.5], [1, 0.3]]
+const NECK_TWIST = [[0, 0.12], [0.28, 0.55], [0.46, -0.4], [1, -0.3]]
+const LEG_L_SWING = [[0, -0.24], [0.18, -0.6], [0.3, -1.2], [0.46, -0.9], [0.7, -0.3], [1, -0.4]]
+const LEG_L_KNEE = [[0, 0.34], [0.18, 0.7], [0.3, 1.3], [0.46, 1.0], [0.7, 0.4], [1, 0.3]]
+const LEG_R_SWING = [[0, 0.12], [0.18, 0.3], [0.46, 0.7], [0.7, -0.1], [1, -0.1]]
+const LEG_R_KNEE = [[0, 0.3], [0.18, 0.9], [0.46, 1.2], [0.7, 0.8], [1, 0.45]]
+const LIFT = [[0, -0.04], [0.16, -0.13], [0.28, 0.2], [0.46, 0.55], [0.52, 0.55], [0.72, -0.1], [0.85, -0.06], [1, -0.04]]
+
+/** The throw, `p` 0..1 over THROW_TIME. */
 function throwing(p) {
-  const k = smooth(0, 0.1, p) * (1 - smooth(0.62, 1, p))
-  const s = smooth(0.17, 0.42, p)
-  blend('ArmR1', lerp(0.95, -1.55, s), lerp(0.75, 0.15, s) * OUT_R, 0, k)
-  blend('ArmR2', lerp(-1.15, -0.15, s), 0, 0, k)
-  blend('ArmL1', lerp(-0.55, -1.35, s), lerp(0.35, 0.1, s) * OUT_L, 0, k)
-  blend('ArmL2', lerp(-0.7, -0.2, s), 0, 0, k)
-  blend('Spine1', lerp(0.04, -0.22, s), 0, lerp(-0.5, 0.42, s), k)
-  blend('Neck1', 0, 0, lerp(0.4, -0.3, s), k)
-  blend('LegL1', lerp(-0.2, -0.42, s), 0.14 * OUT_L, 0, k)
-  blend('LegL2', 0.3, 0, 0, k)
-  blend('LegR1', lerp(0.15, 0.38, s), 0.14 * OUT_R, 0, k)
-  blend('LegR2', lerp(0.3, 0.45, s), 0, 0, k)
-  pose.lift += (lerp(-0.05, -0.07, s) - pose.lift) * k
+  const k = smooth(0, 0.12, p) * (1 - smooth(0.8, 1, p))
+  blend('ArmR1', track(p, ARM_R_SWING), track(p, ARM_R_SWAY) * OUT_R, 0, k)
+  blend('ArmR2', track(p, ARM_R_ELBOW), 0, 0, k)
+  blend('ArmL1', track(p, ARM_L_SWING), track(p, ARM_L_SWAY) * OUT_L, 0, k)
+  blend('ArmL2', track(p, ARM_L_ELBOW), 0, 0, k)
+  blend('Spine1', track(p, SPINE_SWING), 0, track(p, SPINE_TWIST), k)
+  blend('Neck1', 0, 0, track(p, NECK_TWIST), k)
+  blend('LegL1', track(p, LEG_L_SWING), 0.14 * OUT_L, 0, k)
+  blend('LegL2', track(p, LEG_L_KNEE), 0, 0, k)
+  blend('LegR1', track(p, LEG_R_SWING), 0.14 * OUT_R, 0, k)
+  blend('LegR2', track(p, LEG_R_KNEE), 0, 0, k)
+  pose.lift += (track(p, LIFT) - pose.lift) * k
 }
 
 /** The catch, `c` 1..0 over CATCH_TIME: the arm snatches forward and settles back. */
@@ -191,23 +227,23 @@ export function computePose(motion) {
 }
 
 /**
- * How flat the held frisbee lies, 0 (upright at the side) to 1 (level, ready to fly):
+ * How flat the held softball lies, 0 (upright at the side) to 1 (level, ready to fly):
  * it turns flat during the wind-up and comes back flat from a catch.
  */
 export function heldFlatness(throwT, catchT) {
-  if (throwT > 0) return smooth(0.04, RELEASE_AT, 1 - throwT / THROW_TIME)
+  if (throwT > 0) return smooth(0.02, 0.22, 1 - throwT / THROW_TIME)
   if (catchT > 0) return smooth(0.15, 0.85, catchT / CATCH_TIME)
   return 0
 }
 
 /*
- * The frisbee in the hand, in the hand's frame (character space with the arm hanging
+ * The softball in the hand, in the hand's frame (character space with the arm hanging
  * at rest; the avatar turns that frame with the arm). Upright, it stands beside the
  * leg gripped by its back rim, its face turned out and back towards the camera. Flat,
  * it lies level in front of the hand like a backhand grip.
  */
 export const GRIP_UPRIGHT = new Vector3(-0.22, -0.12, 0.3)
-export const GRIP_FLAT = new Vector3(0.12, 0, 0.38)
+export const GRIP_FLAT = new Vector3(0.05, -0.08, 0.2)
 export const FACE_UPRIGHT = new Quaternion().setFromUnitVectors(
   new Vector3(0, 1, 0),
   new Vector3(-0.8, 0.05, -0.6).normalize(),
