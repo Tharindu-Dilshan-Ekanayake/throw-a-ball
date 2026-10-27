@@ -164,7 +164,7 @@ export function GameScene({ onReady }) {
         // No tone mapping. The default (ACES) desaturates the toy colours; the palette
         // and light levels in sceneStyle.js are chosen to look right without it.
         flat
-        camera={{ position: [0, 6, 26], fov: 60, near: 0.5, far: settings.viewDistance }}
+        camera={{ position: [0, 6, 26], fov: 60, near: 1, far: settings.viewDistance }}
         onCreated={handleCreated}
       >
         <fog attach="fog" args={[FOG.color, settings.fogNear, settings.viewDistance * 0.95]} />

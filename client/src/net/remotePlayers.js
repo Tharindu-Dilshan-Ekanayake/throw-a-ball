@@ -28,12 +28,20 @@ export function upsertRemotePlayer(sessionId, state) {
       /** Their avatar's outfit, parsed from `look`; `lookKey` is the raw string. */
       look: null,
       lookKey: '',
+      /**
+       * Drawn as their real avatar (RemoteAvatars owns this). True from the start, so a
+       * player who has just arrived is never shown as the blocky stand-in first.
+       */
+      fullAvatar: true,
       /** Throw count as last seen; the renderer plays a throw for each new one. */
       throws: state.throws,
       seenThrows: state.throws,
       throwT: 0,
       catchT: 0,
-      frisbeeAway: false,
+      ballAway: false,
+      /** True while their stage throw is in the air (their hand stays empty). */
+      ghostAway: false,
+      ghostNext: false,
       petIds: [],
       /** Follow state per equipped pet, grown as needed and reused. */
       pets: [],

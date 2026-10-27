@@ -71,7 +71,7 @@ function paintText(text, maxTexture, { aspect, fill, edge, slant = 0.22, worldWi
 
 /**
  * The painted signs, drawn once the font has loaded: "THROW AREA" across the throw
- * pad, "THROW!" on the arch and "FRISBEES" on the shop's board. Each sits a couple of
+ * pad, "THROW!" on the arch and "SOFTBALLS" on the shop's board. Each sits a couple of
  * centimetres proud of what it's painted on, so it can't sink into it.
  *
  * @param {number} maxTexture texture size cap for the preset
@@ -92,7 +92,7 @@ export async function createPaintedSigns(maxTexture) {
   throwArea.rotation = [-Math.PI / 2, 0, 0]
 
   const boardWidth = SHOP_BOARD.maxZ - SHOP_BOARD.minZ - 3
-  const board = paintText('FRISBEES', maxTexture, {
+  const board = paintText('SOFTBALLS', maxTexture, {
     aspect: 0.26,
     fill: ['#fffbd0', '#ffd21f', '#ff8a00'],
     edge: '#c2410c',

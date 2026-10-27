@@ -77,6 +77,22 @@ export function createGroundMap(maxTexture) {
 
   rect(MAP, PALETTE.plaza)
 
+  // The plaza floor: a lavender-and-white chequerboard, a texel (one world unit, two
+  // studs) to a tile, with lawns left at its edges and in a few islands.
+  for (let z = PLAZA.minZ; z < PLAZA.maxZ; z += 1) {
+    for (let x = PLAZA.minX; x < PLAZA.maxX; x += 1) {
+      rect({ minX: x, maxX: x + 1, minZ: z, maxZ: z + 1 }, (x + z) & 1 ? PALETTE.tileA : PALETTE.tileB)
+    }
+  }
+  const lawns = [
+    { minX: PLAZA.minX, maxX: PLAZA.maxX, minZ: PLAZA.maxZ - 4, maxZ: PLAZA.maxZ },
+    { minX: PLAZA.minX, maxX: PLAZA.minX + 3, minZ: PLAZA.minZ, maxZ: PLAZA.maxZ },
+    { minX: PLAZA.maxX - 2, maxX: PLAZA.maxX, minZ: PLAZA.minZ, maxZ: PLAZA.maxZ },
+    { minX: -21, maxX: -9, minZ: 22, maxZ: 30 },
+    { minX: -9, maxX: -3, minZ: -22, maxZ: -12 },
+  ]
+  for (const lawn of lawns) rect(lawn, PALETTE.lawn)
+
   // Lane apron along the west side, behind the lane floors.
   const lanesMinZ = laneCenterZ(LANE_COUNT - 1) - LANE_WIDTH / 2 - 2
   const lanesMaxZ = laneCenterZ(0) + LANE_WIDTH / 2 + 2
@@ -84,14 +100,14 @@ export function createGroundMap(maxTexture) {
 
   // Paths: a walkway along the lane entrances, spawn to the stage steps, spawn to the
   // lanes, the shop, the eggs, and a spur up to the portal.
-  const eggsZ = EGG_STANDS[0].z
+  // The everyday egg stands (the Demon and Spooky eggs live elsewhere), nearest edge.
+  const eggsZ = Math.min(...EGG_STANDS.filter((stand) => stand.z > 0).map((stand) => stand.z))
   const paths = [
     { minX: LANE_NEAR_X + 3, maxX: LANE_NEAR_X + 8, minZ: lanesMinZ, maxZ: lanesMaxZ },
     { minX: -5, maxX: 5, minZ: STAGE.maxZ, maxZ: 16 },
     { minX: LANE_NEAR_X + 3, maxX: -5, minZ: 11, maxZ: 17 },
     { minX: 5, maxX: SHOP.minX + 1, minZ: -12, maxZ: -6 },
     { minX: 5, maxX: 46, minZ: eggsZ - 8, maxZ: eggsZ - 4 },
-    { minX: PORTAL.x - 3, maxX: PORTAL.x + 3, minZ: PORTAL.z + 3, maxZ: -12 },
   ]
   for (const p of paths) bordered(p, PALETTE.path, PALETTE.pathEdge)
   // Paths overlap; repaint the interiors so crossings don't show edges.
@@ -99,17 +115,20 @@ export function createGroundMap(maxTexture) {
     rect({ minX: p.minX + 1, maxX: p.maxX - 1, minZ: p.minZ + 1, maxZ: p.maxZ - 1 }, PALETTE.path)
   }
   bordered({ minX: -9, maxX: 9, minZ: 7, maxZ: 21 }, PALETTE.path, PALETTE.pathEdge)
+  // The spur up to the portal is a dark, pumpkin-edged Halloween walk.
+  bordered({ minX: PORTAL.x - 3, maxX: PORTAL.x + 3, minZ: PORTAL.z + 3, maxZ: -12 }, PALETTE.hallowFloor, PALETTE.hallowEdge)
 
   // Egg plaza and the shop yard.
   bordered({ minX: 6, maxX: PLAZA.maxX - 1, minZ: eggsZ - 4, maxZ: LEADERBOARDS[0].z - 1 }, PALETTE.apron, PALETTE.apronEdge)
   rect({ minX: SHOP.minX, maxX: SHOP.maxX, minZ: SHOP.minZ, maxZ: SHOP.maxZ }, PALETTE.shopFloor)
 
-  disc(PORTAL.x, PORTAL.z, 6, PALETTE.apronEdge)
-  disc(PORTAL.x, PORTAL.z, 5, PALETTE.apron)
+  disc(PORTAL.x, PORTAL.z, 6, PALETTE.hallowEdge)
+  disc(PORTAL.x, PORTAL.z, 5, PALETTE.hallowFloor)
   disc(FREE_REWARD.x, FREE_REWARD.z, 4, PALETTE.apronEdge)
 
-  // Waterfall pool at the foot of the north cliff.
-  rect({ minX: WATERFALL.x - 6, maxX: WATERFALL.x + 6, minZ: WATERFALL.z, maxZ: WATERFALL.z + 5 }, PALETTE.water)
+  // The big waterfall's pool, at the foot of the cliff behind the leaderboards.
+  const poolHalf = (WATERFALL.width + 6) / 2
+  rect({ minX: WATERFALL.x - poolHalf, maxX: WATERFALL.x + poolHalf, minZ: WATERFALL.z - 7, maxZ: WATERFALL.z }, PALETTE.water)
 
   const texture = new CanvasTexture(canvas)
   texture.colorSpace = SRGBColorSpace

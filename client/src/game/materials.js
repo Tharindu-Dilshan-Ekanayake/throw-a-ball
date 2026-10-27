@@ -14,7 +14,7 @@ import { Color, MeshLambertMaterial } from 'three'
 export const STYLE = {
   /** Rounded stud tiles. */
   STUDS: 0,
-  /** Hill block: tan studded sides with a grass cap and lip. */
+  /** Hill block: chequered tan-and-brown studded sides with a grass cap and lip. */
   TERRAIN: 1,
   /** Building wall with a window grid on the sides. */
   WINDOWS: 2,
@@ -130,7 +130,13 @@ const fragmentBody = /* glsl */ `
     } else if (style < 2.0) {
       // Grass cap plus a lip a little way down the sides; tan dirt below.
       bool lip = (vToyTop - vToyPos.y) < 0.45;
-      if (isTop || lip) col = uGrass * (isTop ? 1.0 : 0.88);
+      if (isTop || lip) {
+        col = uGrass * (isTop ? 1.0 : 0.88);
+      } else {
+        // Chequerboard cliff sides: tan and a darker brown, three units to a square.
+        float chk = mod(floor(suv.x / 3.0) + floor(suv.y / 3.0), 2.0);
+        col *= mix(0.68, 1.06, chk);
+      }
       col *= toyTile(sp);
     } else if (style < 3.0) {
       if (!isTop) {
@@ -220,7 +226,7 @@ export function createToyMaterial({
       .replace('#include <color_fragment>', `#include <color_fragment>\n${fragmentBody}`)
   }
   // The stud scale is a uniform, so materials differing only in it share a program.
-  material.customProgramCacheKey = () => 'toy-v2'
+  material.customProgramCacheKey = () => 'toy-v3'
   return material
 }
 

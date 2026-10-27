@@ -32,7 +32,7 @@ const BLURBS = {
   sphinx: 'Limited: 150x Power pet',
 }
 
-/** Everything Wins can buy besides frisbees and eggs, grouped, with what it does. */
+/** Everything Wins can buy besides softballs and eggs, grouped, with what it does. */
 export function StorePanel() {
   const passes = useGame((s) => s.profile.passes)
   const wins = useGame((s) => s.profile.wins)

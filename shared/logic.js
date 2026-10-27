@@ -92,8 +92,12 @@ export function normalizeProfile(raw, id, name) {
     : []
   p.ownedPlanes = Array.isArray(raw.ownedPlanes) && raw.ownedPlanes.length ? raw.ownedPlanes : ['paper']
   if (!p.ownedPlanes.includes(p.equippedPlane)) p.equippedPlane = p.ownedPlanes[0]
-  // The tutorial is for brand-new players only: anyone who has rebirthed is past it.
-  if (p.rebirths > 0) p.tutorialStep = TUTORIAL.length
+  // The tutorial is for new players: anyone who has rebirthed is past the first three
+  // steps, and past the last too if they already bought a softball.
+  if (p.rebirths > 0) {
+    const afterRebirth = TUTORIAL.findIndex((step) => step.event === 'rebirth') + 1
+    p.tutorialStep = p.ownedPlanes.length > 1 ? TUTORIAL.length : Math.max(p.tutorialStep, afterRebirth)
+  }
   p.v = PROFILE_VERSION
   return p
 }
@@ -212,7 +216,9 @@ export function applyClick(profile, now) {
 export function applyRebirth(profile) {
   if (!isMaxLevel(profile)) return { ok: false, error: `Reach level ${levelCap(profile.rebirths)} first!` }
   profile.rebirths += 1
-  profile.tutorialStep = TUTORIAL.length
+  // Skipped the guide's shop step by buying a ball already? Then the guide is done;
+  // otherwise the rebirth step completes (afterRebirth) and the shop step comes next.
+  if (profile.ownedPlanes.length > 1) profile.tutorialStep = TUTORIAL.length
   profile.power = 0
   profile.level = 1
   profile.levelProgress = 0
@@ -278,10 +284,10 @@ export function applyThrow(profile, now) {
 
 export function buyPlane(profile, planeId) {
   const plane = PLANES.find((p) => p.id === planeId)
-  if (!plane) return { ok: false, error: 'Unknown frisbee' }
+  if (!plane) return { ok: false, error: 'Unknown softball' }
   if (profile.ownedPlanes.includes(planeId)) return equipPlane(profile, planeId)
   const index = planeIndex(planeId)
-  // Frisbees unlock in order, like the reference's shop.
+  // Softballs unlock in order, like the reference's shop.
   const previous = PLANES[index - 1]
   if (previous && !profile.ownedPlanes.includes(previous.id)) {
     return { ok: false, error: `Buy the ${previous.name} first!` }
@@ -294,7 +300,7 @@ export function buyPlane(profile, planeId) {
 }
 
 export function equipPlane(profile, planeId) {
-  if (!profile.ownedPlanes.includes(planeId)) return { ok: false, error: 'You don’t own that frisbee' }
+  if (!profile.ownedPlanes.includes(planeId)) return { ok: false, error: 'You don’t own that softball' }
   profile.equippedPlane = planeId
   return { ok: true, equipped: true, planeId }
 }

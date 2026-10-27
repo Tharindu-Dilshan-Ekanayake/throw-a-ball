@@ -33,6 +33,9 @@ export const CLOUDS = {
 /** Every surface colour in the lobby. */
 export const PALETTE = {
   plaza: '#c3ec86',
+  /** The plaza's big floor tiles: lavender and near-white, in a chequerboard. */
+  tileA: '#d3caf5',
+  tileB: '#f0edfc',
   path: '#f3d57e',
   pathEdge: '#e5a94f',
   apron: '#acdff5',
@@ -45,16 +48,19 @@ export const PALETTE = {
   leaves: ['#33cc3a', '#3fd63f', '#2ec236'],
   white: '#f4f7fb',
   water: '#4cc3ff',
+  /** World 2's Halloween ground: a dark violet floor ringed in pumpkin orange. */
+  hallowFloor: '#2c1a4a',
+  hallowEdge: '#ff8a1e',
 }
 
 export const LIGHTS = {
   /** Fill from above (sky) and below (bounce off the grass). */
   hemiSky: '#ffffff',
   hemiGround: '#b9cba6',
-  hemiIntensity: 2.1,
+  hemiIntensity: 1.85,
 
   sunColor: '#fff6e8',
-  sunIntensity: 1.65,
+  sunIntensity: 1.95,
   /**
    * Direction *towards* the sun: high and a little to the left, behind the default
    * camera, so the side of the character you look at is lit and its shadow falls

@@ -1,5 +1,5 @@
 import { hash2, mulberry32 } from '@shared/rng'
-import { PLAZA } from '@shared/world'
+import { PLAZA, WATERFALL, WATERFALL_CLIFF } from '@shared/world'
 
 import { STYLE } from '../materials'
 import { PALETTE } from '../sceneStyle'
@@ -44,6 +44,24 @@ function distanceOutside(rect, x, z) {
 
 const CORRIDOR = { minX: -CORRIDOR_HALF_WIDTH, maxX: CORRIDOR_HALF_WIDTH, minZ: -10000, maxZ: PLAZA.minZ }
 
+/**
+ * The tall cliff the lobby's big waterfall pours off: full height over its rect,
+ * stepping down in two shoulders so it grows out of the hills rather than standing on
+ * them like a tower.
+ */
+function cliffHeight(x, z) {
+  const d = distanceOutside(WATERFALL_CLIFF, x, z)
+  if (d === 0) return WATERFALL_CLIFF.height
+  if (d < 8) return WATERFALL_CLIFF.height - 10
+  if (d < 16) return WATERFALL_CLIFF.height - 18
+  return 0
+}
+
+/** True over the river that runs back over the cliff top: no trees there. */
+export function onWaterfallRiver(x, z) {
+  return Math.abs(x - WATERFALL.x) < WATERFALL.width / 2 + 3 && z < WATERFALL_CLIFF.minZ + 52
+}
+
 /** Terrain height at a cell centre, or 0 where the ground is open. */
 export function terrainHeight(x, z) {
   if (distanceOutside(PLAZA, x, z) === 0) return 0
@@ -53,7 +71,7 @@ export function terrainHeight(x, z) {
   const base = d < 6 ? 4 : 6 + Math.floor(d / 14) * 5
   const n = valueNoise(x, z, 28, 11) * 7 + valueNoise(x, z, 9, 23) * 2.5
   const h = Math.round((base + n) / STEP) * STEP
-  return Math.min(34, Math.max(4, h))
+  return Math.max(cliffHeight(x, z), Math.min(34, Math.max(4, h)))
 }
 
 /**
@@ -158,6 +176,7 @@ export function buildTerrain(blocks, { treeDensity = 1 } = {}) {
       if (!flat) continue
       const x = BOUNDS.minX + (i + 0.5) * CELL
       const z = BOUNDS.minZ + (j + 0.5) * CELL
+      if (onWaterfallRiver(x, z)) continue
       const scale = 0.9 + rand() * 0.5
       const reach = TREE_HALF_WIDTH * scale
       if (placed.some((t) => Math.max(Math.abs(t.x - x), Math.abs(t.z - z)) < t.reach + reach)) continue
@@ -172,7 +191,8 @@ export function buildTerrain(blocks, { treeDensity = 1 } = {}) {
     [PLAZA.minX + 4, PLAZA.maxZ - 5],
     [PLAZA.maxX - 4, PLAZA.maxZ - 5],
     [-20, PLAZA.maxZ - 3],
-    [-4, PLAZA.maxZ - 3],
+    // The pool at the foot of the big waterfall takes the middle of this edge.
+    [-30, PLAZA.maxZ - 3],
   ]
   for (const [x, z] of plazaTrees) addTree(blocks, x, 0, z, 1.1, rand)
 

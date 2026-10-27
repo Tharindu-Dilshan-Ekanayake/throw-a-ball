@@ -59,7 +59,7 @@ function fallbackMotion(delta) {
  *   own units: Bloxity authors the rig ~6.4 units tall with the feet at y=0, far bigger
  *   than the game's metric scale, so the model is measured and rescaled. `handRef` is
  *   an object beside the avatar that gets moved onto the right palm every frame (the
- *   held frisbee rides in it). `onStep` reports loading progress.
+ *   held softball rides in it). `onStep` reports loading progress.
  */
 export const BloxityAvatar = forwardRef(function BloxityAvatar(
   { equipped, proportions, onReady, onStep, targetHeight = 1.8, motionRef, handRef, ...props },

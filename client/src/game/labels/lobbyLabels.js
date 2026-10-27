@@ -23,6 +23,8 @@ export const TEXT = {
   white: ['#ffffff', '#ffffff', '#dfe7f0'],
   red: ['#ffb0a8', '#ff4a3b', '#d4142a'],
   blue: ['#e0faff', '#7fe2ff', '#2fa8ff'],
+  pumpkin: ['#fff0b0', '#ff9a1e', '#e0510a'],
+  spooky: ['#f1dcff', '#b15cff', '#6a2fd8'],
 }
 
 const tint = (hex) => ['#ffffff', hex, hex]
@@ -73,7 +75,7 @@ export function padLabelSpec(index, state) {
         ? { text: 'OWNED', size: 40, gradient: TEXT.green }
         : { text: `${formatNumber(plane.cost)} Wins`, size: 40, icon: 'trophy', gradient: state === 'locked' ? TEXT.red : TEXT.gold }
   return {
-    lines: [{ text: `+${formatNumber(plane.power)} / Power`, size: 38, icon: 'frisbee', fill: '#ffffff' }, status],
+    lines: [{ text: `+${formatNumber(plane.power)} / Power`, size: 38, icon: 'softball', fill: '#ffffff' }, status],
     pxPerUnit: 70,
   }
 }
@@ -81,7 +83,7 @@ export function padLabelSpec(index, state) {
 /** Largest a pad label can get, so its atlas slot fits every state. */
 const padReserve = (index) => ({
   lines: [
-    { text: `+${formatNumber(PLANES[index].power)} / Power`, size: 38, icon: 'frisbee' },
+    { text: `+${formatNumber(PLANES[index].power)} / Power`, size: 38, icon: 'softball' },
     { text: `${formatNumber(PLANES[index].cost)} Wins`, size: 40, icon: 'trophy' },
   ],
 })
@@ -152,10 +154,11 @@ const freeRewardLabel = () => ({
 
 const portalLabel = () => ({
   id: 'portal',
-  position: [PORTAL.x, PORTAL.radius * 2 + 2.8, PORTAL.z],
+  position: [PORTAL.x, PORTAL.radius * 2 + 4.6, PORTAL.z],
   spec: {
     lines: [
-      { text: 'World 2', size: 58, gradient: TEXT.blue },
+      { text: 'World 2', size: 58, gradient: TEXT.pumpkin },
+      { text: 'HALLOWEEN', size: 50, gradient: TEXT.spooky },
       { text: `Needs ${formatNumber(WORLD2_POWER)} Power`, size: 42, icon: 'muscle', gradient: TEXT.gold },
     ],
     pxPerUnit: 56,

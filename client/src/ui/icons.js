@@ -128,16 +128,17 @@ const star = svg(
   `<path d="M50 8l12 25 27 4-20 19 5 27-24-13-24 13 5-27-20-19 27-4z" fill="#ffffff" stroke="${OUT}" stroke-width="6" stroke-linejoin="round"/>`,
 )
 
-/** A frisbee seen at an angle: blue top with white rings, darker rim under it. */
-const frisbee = svg(
-  `<ellipse cx="50" cy="58" rx="45" ry="23" fill="#1453b8" stroke="${OUT}" stroke-width="6"/>
-  <ellipse cx="50" cy="50" rx="45" ry="23" fill="url(#fz-g)" stroke="${OUT}" stroke-width="6"/>
-  <ellipse cx="50" cy="50" rx="31" ry="15" fill="none" stroke="#ffffff" stroke-width="5"/>
-  <ellipse cx="50" cy="50" rx="12" ry="5.6" fill="#ffffff"/>
-  <path d="M18 44c6-8 18-13 30-14" fill="none" stroke="#ffffff" stroke-width="4" stroke-linecap="round" opacity=".7"/>`,
+/** A softball: optic-yellow cover with the two curved red seams and their stitches. */
+const softball = svg(
+  `<circle cx="50" cy="52" r="42" fill="url(#fz-g)" stroke="${OUT}" stroke-width="6"/>
+  <path d="M24 26c16 12 20 36 6 56" fill="none" stroke="#e0312a" stroke-width="3" stroke-linecap="round"/>
+  <path d="M24 26c16 12 20 36 6 56" fill="none" stroke="#e0312a" stroke-width="11" stroke-dasharray="2.6 6.4"/>
+  <path d="M76 26c-16 12-20 36-6 56" fill="none" stroke="#e0312a" stroke-width="3" stroke-linecap="round"/>
+  <path d="M76 26c-16 12-20 36-6 56" fill="none" stroke="#e0312a" stroke-width="11" stroke-dasharray="2.6 6.4"/>
+  <path d="M30 36c4-10 12-16 22-18" fill="none" stroke="#ffffff" stroke-width="5" stroke-linecap="round" opacity=".6"/>`,
   vgrad('fz-g', [
-    [0, '#7fd2ff'],
-    [1, '#2f7fe6'],
+    [0, '#f6ff7a'],
+    [1, '#c9e419'],
   ]),
 )
 
@@ -252,7 +253,7 @@ export const ICON_SVGS = {
   store,
   calendar,
   star,
-  frisbee,
+  softball,
   potionWins,
   potionPower,
   close,
@@ -268,6 +269,7 @@ export const EGG_COLORS = {
   sunset: ['#ffc07a', '#ff6a3d', '#ffe2b8'],
   unicorn: ['#f6eaff', '#d3b4ff', '#ffd1f0'],
   demon: ['#4a1d2e', '#1a0710', '#ff4a1c'],
+  spooky: ['#6a2fa8', '#2a1250', '#ff8a1e'],
 }
 
 const urlCache = new Map()

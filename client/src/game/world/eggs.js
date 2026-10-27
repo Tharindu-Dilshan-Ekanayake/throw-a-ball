@@ -10,7 +10,7 @@ import { STYLE } from '../materials'
  */
 
 /** Each stand's light ring, in its egg's colour. */
-const RING = { basic: '#7fe2ff', meadow: '#5cff6a', sunset: '#ffb347', unicorn: '#ff9cf4' }
+const RING = { basic: '#7fe2ff', meadow: '#5cff6a', sunset: '#ffb347', unicorn: '#ff9cf4', spooky: '#ff8a1e' }
 
 /** Height of an egg's centre above the ground. */
 export const eggHeight = (stand) => (stand.big ? 3.4 : 2.6)

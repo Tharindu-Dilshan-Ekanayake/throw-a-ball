@@ -12,7 +12,7 @@ import { inThrowArea, laneAt, THROW_LINE_Z } from '@shared/world'
 import { remotePlayers } from '../../net/remotePlayers'
 import { getQuality } from '../../store/quality'
 import { createBoxInstances, disposeBlocks } from '../blocks'
-import { createFrisbeeMesh, disposeFrisbeeMesh, frisbeeGlow, frisbeeOrientation } from '../frisbee'
+import { createSoftballMesh, disposeSoftballMesh, softballGlow, softballOrientation } from '../softball'
 import { createGlowInstances, disposeGlow } from '../glow'
 import { sharedMaterials, STYLE } from '../materials'
 import { CATCH_TIME, RELEASE_AT, RELEASE_DELAY, THROW_TIME } from '../playerPose'
@@ -27,8 +27,8 @@ const PARTS = 6
 const MAX_GHOSTS = 8
 /** Short throws (training and clicks) in the air at once, across everyone. */
 const MAX_TOSSES = 12
-/** Every remote frisbee shares one mesh: stage flights, tosses, and ones in hand. */
-const MAX_FRISBEES = MAX_GHOSTS + MAX_TOSSES + MAX_REMOTES
+/** Every remote softball shares one mesh: stage flights, tosses, and ones in hand. */
+const MAX_BALLS = MAX_GHOSTS + MAX_TOSSES + MAX_REMOTES
 const TOSS_TIME = 0.42
 const TOSS_RANGE = 9
 const TOSS_ARC = 0.9
@@ -133,15 +133,15 @@ export function RemotePlayers() {
     // Smooth toy boxes: the shared toy material, so no extra shader program.
     const body = createBoxInstances(MAX_REMOTES * PARTS, sharedMaterials().toy, STYLE.SMOOTH)
     body.castShadow = true
-    // Other players' throws: their own frisbees (same mesh and material as yours).
-    const ghosts = createFrisbeeMesh(MAX_FRISBEES)
-    return { body, ghosts, ghostGlows: createGlowInstances(MAX_FRISBEES, 0.6) }
+    // Other players' throws: their own softballs (same mesh and material as yours).
+    const ghosts = createSoftballMesh(MAX_BALLS)
+    return { body, ghosts, ghostGlows: createGlowInstances(MAX_BALLS, 0.6) }
   }, [])
 
   useEffect(
     () => () => {
       disposeBlocks(assets.body)
-      disposeFrisbeeMesh(assets.ghosts)
+      disposeSoftballMesh(assets.ghosts)
       disposeGlow(assets.ghostGlows)
       hideNameplatesFrom(0)
     },
@@ -172,7 +172,7 @@ export function RemotePlayers() {
       r.shadow.visible = visible
 
       // Each new throw of theirs: the swing (as for you, a new one only once the last
-      // has let go) and, outside the throw area, a frisbee leaving their hand. Throws
+      // has let go) and, outside the throw area, a softball leaving their hand. Throws
       // off the stage fly as ghost flights instead.
       if (r.throws !== r.seenThrows) {
         const fresh = r.throws > r.seenThrows
@@ -182,10 +182,12 @@ export function RemotePlayers() {
           if (visible && !inThrowArea(r.position.x, r.position.z, 2)) spawnToss(r)
         }
       }
-      const wasAway = r.frisbeeAway
+      const wasAway = r.ballAway
       r.throwT = Math.max(0, r.throwT - delta)
-      r.frisbeeAway = r.throwT > 0 && r.throwT <= THROW_TIME * (1 - RELEASE_AT)
-      r.catchT = wasAway && !r.frisbeeAway ? CATCH_TIME : Math.max(0, r.catchT - delta)
+      // Their softball is away from the release until the swing ends, and then for as long
+      // as their throw is still flying (ghostAway), so it doesn't reappear in the hand.
+      r.ballAway = (r.throwT > 0 && r.throwT <= THROW_TIME * (1 - RELEASE_AT)) || r.ghostAway === true
+      r.catchT = wasAway && !r.ballAway ? CATCH_TIME : Math.max(0, r.catchT - delta)
 
       // Players drawn as their real avatar (RemoteAvatars) skip the blocky figure.
       if (visible && !r.fullAvatar && instance + PARTS <= MAX_REMOTES * PARTS) {
@@ -258,41 +260,66 @@ export function RemotePlayers() {
     body.instanceMatrix.needsUpdate = true
     if (body.instanceColor) body.instanceColor.needsUpdate = true
 
-    // --- Ghost frisbees -------------------------------------------------------------
+    // --- Ghost softballs -------------------------------------------------------------
+    // A stage throw of someone else's: it waits until their throw animation lets go of the
+    // ball, then flies from their hand. Until then it is the ball in their hand, and for
+    // the whole flight their hand stays empty (ghostAway), so animation and ball agree.
     let g = 0
+    for (const r of remotePlayers.values()) r.ghostNext = false
     for (let i = runtime.ghostThrows.length - 1; i >= 0; i -= 1) {
       const throwInfo = runtime.ghostThrows[i]
+      const owner = remotePlayers.get(throwInfo.sid)
+      if (!throwInfo.released) {
+        const waited = (now - throwInfo.arrivedAt) / 1000
+        const letGo = owner && owner.throwT > 0 && owner.throwT <= THROW_TIME * (1 - RELEASE_AT)
+        // Fall back to releasing anyway if their swing never shows (they are not drawn,
+        // or the message came late) so the ball is never lost.
+        const lateAndIdle = owner && owner.throwT === 0 && waited > 0.25
+        if (!letGo && !lateAndIdle && owner && waited < 0.8) continue
+        const hand = owner?.grip
+        if (hand) {
+          hand.updateWorldMatrix(true, false)
+          _v.setFromMatrixPosition(hand.matrixWorld)
+          throwInfo.x = _v.x
+          throwInfo.y = _v.y
+          throwInfo.z = _v.z
+        }
+        throwInfo.released = true
+        throwInfo.startedAt = now
+      }
       const p = (now - throwInfo.startedAt) / 1000 / throwInfo.duration
       if (p >= 1) {
         runtime.ghostThrows.splice(i, 1)
         continue
       }
+      if (owner) owner.ghostNext = true
       if (g >= MAX_GHOSTS) continue
       const eased = 1 - Math.pow(1 - p, 2.4)
       const endZ = THROW_LINE_Z - throwInfo.distance
       const z = throwInfo.z + (endZ - throwInfo.z) * eased
-      const y = 1.6 + 3.9 * (1 - Math.exp(-(throwInfo.z - z) / 9)) - 5 * Math.max(0, p - 0.86) / 0.14
+      const y = throwInfo.y + 3.9 * (1 - Math.exp(-(throwInfo.z - z) / 9)) - 5 * Math.max(0, p - 0.86) / 0.14
       _p.set(throwInfo.x * (1 - Math.min(1, p * 4)), Math.max(0.35, y), z)
-      frisbeeOrientation(_q, now * 0.02 + i, 0.12, 0)
+      softballOrientation(_q, now * 0.02 + i, 0.12, 0)
       ghosts.setMatrixAt(g, _m.compose(_p, _q, _s.set(2, 2, 2)))
       ghosts.setStyle(g, throwInfo.planeId)
-      ghostGlows.setMatrixAt(g, _m.compose(_p, _q, _s.setScalar(3 * settings.frisbeeGlow)))
-      ghostGlows.setColorAt(g, frisbeeGlow(throwInfo.planeId))
+      ghostGlows.setMatrixAt(g, _m.compose(_p, _q, _s.setScalar(3 * settings.ballGlow)))
+      ghostGlows.setColorAt(g, softballGlow(throwInfo.planeId))
       g += 1
     }
+    for (const r of remotePlayers.values()) r.ghostAway = r.ghostNext
 
     // --- Tosses: training and click throws ---------------------------------------
-    const tossGlow = 1.3 * settings.frisbeeGlow
+    const tossGlow = 1.3 * settings.ballGlow
     for (const toss of tosses) {
       if (!toss.active) continue
       toss.t += delta
       const flight = (toss.t - RELEASE_DELAY) / TOSS_TIME
       if (flight < 0) continue
-      if (flight >= 1 || g >= MAX_FRISBEES) {
+      if (flight >= 1 || g >= MAX_BALLS) {
         toss.active = false
         continue
       }
-      // Leaves from wherever their hand has swung the frisbee to at the release.
+      // Leaves from wherever their hand has swung the softball to at the release.
       if (!toss.released) {
         toss.released = true
         if (toss.r?.grip) toss.r.grip.getWorldPosition(toss.from)
@@ -300,24 +327,24 @@ export function RemotePlayers() {
       }
       _p.lerpVectors(toss.from, toss.to, flight)
       _p.y += Math.sin(flight * Math.PI) * TOSS_ARC
-      frisbeeOrientation(_q, now * 0.025 + g, 0.1, 0)
+      softballOrientation(_q, now * 0.025 + g, 0.1, 0)
       ghosts.setMatrixAt(g, _m.compose(_p, _q, _s.set(0.75, 0.75, 0.75)))
       ghosts.setStyle(g, toss.planeId)
       ghostGlows.setMatrixAt(g, _m.compose(_p, _q, _s.setScalar(tossGlow)))
-      ghostGlows.setColorAt(g, frisbeeGlow(toss.planeId))
+      ghostGlows.setColorAt(g, softballGlow(toss.planeId))
       g += 1
     }
 
-    // --- The frisbee in each fully drawn player's hand -----------------------------
-    const heldGlow = 1.5 * 0.95 * settings.frisbeeGlow
+    // --- The softball in each fully drawn player's hand -----------------------------
+    const heldGlow = 1.5 * 0.95 * settings.ballGlow
     for (const r of remotePlayers.values()) {
-      if (!r.fullAvatar || !r.grip || r.frisbeeAway || g >= MAX_FRISBEES || runtime.camera.mode !== 'follow') continue
+      if (!r.fullAvatar || !r.grip || r.ballAway || g >= MAX_BALLS || runtime.camera.mode !== 'follow') continue
       r.grip.updateWorldMatrix(true, false)
       ghosts.setMatrixAt(g, r.grip.matrixWorld)
       ghosts.setStyle(g, r.planeId)
       _p.setFromMatrixPosition(r.grip.matrixWorld)
       ghostGlows.setMatrixAt(g, _m.compose(_p, _q.identity(), _s.setScalar(heldGlow)))
-      ghostGlows.setColorAt(g, frisbeeGlow(r.planeId))
+      ghostGlows.setColorAt(g, softballGlow(r.planeId))
       g += 1
     }
 

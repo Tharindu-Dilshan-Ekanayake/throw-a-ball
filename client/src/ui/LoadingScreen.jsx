@@ -8,7 +8,7 @@ const TIPS = [
   'Stand in a training lane to gain Power automatically!',
   'Rebirth to unlock better lanes and a higher level cap.',
   'More Power = longer throws = more Wins!',
-  'Spend Wins on better frisbees and eggs.',
+  'Spend Wins on better softballs and eggs.',
   'Pets multiply all the Power you gain.',
 ]
 
@@ -49,12 +49,12 @@ export function LoadingScreen({ done }) {
       }}
     >
       <div className="pp-loading-disc" aria-hidden="true">
-        <img src={iconUrl('frisbee')} alt="" width="150" height="150" draggable={false} />
+        <img src={iconUrl('softball')} alt="" width="150" height="150" draggable={false} />
       </div>
 
       <h1 className="m-0 text-center leading-none" style={{ fontSize: 'clamp(40px, 9vw, 96px)', transform: 'rotate(-3deg)' }}>
         <StrokeText stroke="0.16em" gradient="linear-gradient(180deg, #ffffff 0%, #ffffff 55%, #ffe36b 56%, #ffb21e 100%)">
-          +1 FRISBEE
+          +1 SOFTBALL
         </StrokeText>
       </h1>
 

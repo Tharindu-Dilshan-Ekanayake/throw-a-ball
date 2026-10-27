@@ -19,14 +19,14 @@ import TopCenter from './TopCenter'
  */
 export function HUD() {
   const panelOpen = useGame((s) => s.panel !== null)
-  // While a frisbee is in the air the side menus clear out, as in the reference.
+  // While a softball is in the air the side menus clear out, as in the reference.
   const watching = useGame((s) => Boolean(s.flight || s.throwResult))
   return (
     <div className="pp-font pointer-events-none absolute inset-0 z-20 select-none">
       <div className="absolute inset-0 transition-opacity duration-150" style={{ opacity: panelOpen ? 0 : 1, visibility: panelOpen ? 'hidden' : 'visible' }}>
         <TopBar />
         <TopCenter />
-        {/* Hidden, not unmounted, while a frisbee flies: remounting them at the moment
+        {/* Hidden, not unmounted, while a softball flies: remounting them at the moment
             of the throw cost a visible hitch on slow phones. */}
         <div className="contents" style={{ visibility: watching ? 'hidden' : 'visible' }}>
           <LeftMenu />

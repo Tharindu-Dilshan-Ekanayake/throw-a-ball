@@ -7,7 +7,7 @@ import { runtime } from './runtime'
 let lastClickAt = -Infinity
 
 /**
- * Throws the frisbee in your hand, if you can right now: a click throw (a x1 training
+ * Throws the softball in your hand, if you can right now: a click throw (a x1 training
  * throw, at most one per CLICK_INTERVAL - the authority enforces it too) anywhere
  * outside the throw area. In the throw area it's the real throw off the stage, but
  * only when `stage` is set - tapping the world there does nothing, the THROW button
